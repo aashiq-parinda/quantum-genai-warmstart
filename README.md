@@ -11,6 +11,11 @@ This repository contains original research at the intersection of **Generative A
 
 ---
 
+
+<img width="1024" height="559" alt="image" src="https://github.com/user-attachments/assets/c4596c74-9258-4129-92ae-9b9f0ec162bb" />
+
+
+
 ## 🔬 Research Problem & Gap
 
 ### The Bottleneck: Barren Plateaus and Random Initialization
