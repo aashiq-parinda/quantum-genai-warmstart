@@ -5,6 +5,7 @@ with zero watermarks using headless Google Chrome.
 """
 
 import os
+import re
 import subprocess
 
 
@@ -133,6 +134,17 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 """
 
 
+def format_inline_markdown(text: str) -> str:
+    """Convert inline markdown formatting (**bold**, *italic*, `code`) to clean HTML."""
+    # Bold **text**
+    text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+    # Italic *text*
+    text = re.sub(r'\*(.*?)\*', r'<i>\1</i>', text)
+    # Inline code `text`
+    text = re.sub(r'`(.*?)`', r'<code>\1</code>', text)
+    return text
+
+
 def parse_md_to_html(md_text: str) -> str:
     lines = md_text.splitlines()
     html_out = []
@@ -160,7 +172,7 @@ def parse_md_to_html(md_text: str) -> str:
         if '|' in line and line.strip().startswith('|'):
             if ':---' in line or '---' in line:
                 continue
-            cells = [c.strip() for c in line.split('|')[1:-1]]
+            cells = [format_inline_markdown(c.strip()) for c in line.split('|')[1:-1]]
             if cells:
                 table_rows.append(cells)
             in_table = True
@@ -180,24 +192,19 @@ def parse_md_to_html(md_text: str) -> str:
             in_table = False
 
         if line.startswith('# '):
-            html_out.append(f"<h1>{line[2:]}</h1>")
+            html_out.append(f"<h1>{format_inline_markdown(line[2:])}</h1>")
         elif line.startswith('## '):
-            html_out.append(f"<h2>{line[3:]}</h2>")
+            html_out.append(f"<h2>{format_inline_markdown(line[3:])}</h2>")
         elif line.startswith('### '):
-            html_out.append(f"<h3>{line[4:]}</h3>")
+            html_out.append(f"<h3>{format_inline_markdown(line[4:])}</h3>")
         elif line.startswith('> '):
-            html_out.append(f"<blockquote>{line[2:]}</blockquote>")
+            html_out.append(f"<blockquote>{format_inline_markdown(line[2:])}</blockquote>")
         elif line.startswith('---'):
             html_out.append("<hr/>")
         elif line.strip() == '':
             continue
         else:
-            # Inline formatting
-            p_text = line.replace('**', '<b>', 1)
-            while '**' in p_text:
-                p_text = p_text.replace('**', '</b>', 1)
-            while '`' in p_text:
-                p_text = p_text.replace('`', '<code>', 1).replace('`', '</code>', 1)
+            p_text = format_inline_markdown(line)
             html_out.append(f"<p>{p_text}</p>")
 
     return "\n".join(html_out)
@@ -224,7 +231,7 @@ def convert_md_to_watermark_free_pdf(md_path: str, pdf_path: str, title: str):
     ]
     subprocess.run(chrome_cmd, check=True)
     os.remove(html_path)
-    print(f"✨ 100% Watermark-Free PDF generated at: {pdf_path}")
+    print(f"✨ 100% Watermark-Free PDF with Bold/Markdown parsing generated at: {pdf_path}")
 
 
 if __name__ == "__main__":
