@@ -1,7 +1,8 @@
 # Preprint Draft: Transformer-Accelerated VQE via Parameter Warm-Starting
 
 **Author**: Ashraf Khan  
-**Status**: *Working research preprint — ready for submission*  
+**Status**: *Published Research Preprint — DOI: 10.5281/zenodo.21979940*  
+**Zenodo Record**: [zenodo.org/records/21979940](https://zenodo.org/records/21979940)  
 **Repository**: [github.com/aashiq-parinda/quantum-genai-warmstart](https://github.com/aashiq-parinda/quantum-genai-warmstart)
 
 ---
