@@ -1,14 +1,14 @@
 # Preprint Draft: Transformer-Accelerated VQE via Parameter Warm-Starting
 
 **Author**: Ashraf Khan  
-**Status**: *Working research preprint — ready for arXiv submission*  
+**Status**: *Working research preprint — ready for submission*  
 **Repository**: [github.com/aashiq-parinda/quantum-genai-warmstart](https://github.com/aashiq-parinda/quantum-genai-warmstart)
 
 ---
 
 ## Abstract
 
-Variational Quantum Eigensolvers (VQE) require hundreds to thousands of quantum circuit evaluations to converge from random parameter initialization, severely limiting practical application on near-term NISQ hardware. We investigate whether a 13,156-parameter transformer encoder trained on Hamiltonian-to-optimal-parameter pairs can generate warm-start initializations that improve VQE convergence and energy solution quality. We encode molecular Hamiltonians as Pauli string token sequences and train our model using gradient optimization on synthetic molecular datasets. Over 20 training epochs, the model reduces mean squared parameter prediction error from **13.786 to 4.555 (a 67% reduction)**. On the $H_2$ molecular Hamiltonian, transformer warm-starting achieves a ground state energy estimation of **-1.5181 Hartree**, outperforming the random-initialization baseline (-1.4950 Hartree). We document limitations in out-of-distribution generalization and propose architectural extensions for multi-qubit UCCSD ansätze.
+Variational Quantum Eigensolvers (VQE) require hundreds to thousands of quantum circuit evaluations to converge from random parameter initialization, severely limiting practical application on near-term NISQ hardware. We investigate whether a 13,156-parameter transformer encoder trained on Hamiltonian-to-optimal-parameter pairs can generate warm-start initializations that improve VQE convergence and energy solution quality. We encode molecular Hamiltonians as Pauli string token sequences and train our model using gradient optimization on synthetic molecular datasets. Over 20 training epochs, the model reduces mean squared parameter prediction error from **13.786 to 4.555 (a 67% reduction)**. On the H₂ molecular Hamiltonian, transformer warm-starting achieves a ground state energy estimation of **-1.5181 Hartree**, outperforming the random-initialization baseline (-1.4950 Hartree). We document limitations in out-of-distribution generalization and propose architectural extensions for multi-qubit UCCSD ansätze.
 
 ---
 
@@ -16,19 +16,21 @@ Variational Quantum Eigensolvers (VQE) require hundreds to thousands of quantum 
 
 ### Problem: The Barren Plateau and Random Initialization Cost
 
-Variational Quantum Algorithms (VQA) such as VQE optimize a parameterized quantum circuit ansatz $|\psi(\theta)\rangle$ to minimize:
+Variational Quantum Algorithms (VQA) such as VQE optimize a parameterized quantum circuit ansatz |ψ(θ)⟩ to minimize:
 
-$$E(\theta) = \langle\psi(\theta)|H|\psi(\theta)\rangle$$
+```
+E(θ) = ⟨ψ(θ)| H |ψ(θ)⟩
+```
 
 Two critical bottlenecks prevent wide adoption:
 
-1. **Barren plateau phenomenon** (McClean et al. 2018): In deep parameterized circuits with random initialization, gradients $\partial E/\partial\theta_i$ vanish exponentially with system size $N$, making gradient-based optimization ineffective.
+1. **Barren plateau phenomenon** (McClean et al. 2018): In deep parameterized circuits with random initialization, gradients ∂E/∂θ_i vanish exponentially with system size N, making gradient-based optimization ineffective.
 
-2. **Sample complexity**: Each gradient evaluation via the Parameter-Shift Rule requires $2M$ circuit evaluations for $M$ parameters, leading to $O(M \cdot k)$ total evaluations over $k$ iterations.
+2. **Sample complexity**: Each gradient evaluation via the Parameter-Shift Rule requires 2M circuit evaluations for M parameters, leading to O(M · k) total evaluations over k iterations.
 
 ### Proposed Solution: Generative Warm-Starting
 
-If a machine learning model can learn a mapping $\mathcal{F}: H \rightarrow \theta_{\text{opt}}$ from Hamiltonian structure to near-optimal parameters, then:
+If a machine learning model can learn a mapping F_W: H → θ_opt from Hamiltonian structure to near-optimal parameters, then:
 - The optimization starts close to a local minimum
 - Fewer gradient steps are needed
 - The barren plateau is avoided by starting near a region with finite gradients
@@ -37,7 +39,7 @@ If a machine learning model can learn a mapping $\mathcal{F}: H \rightarrow \the
 
 ## 2. Hypothesis
 
-> *A transformer encoder $\mathcal{F}_W(H)$ trained on pairs $\{(H_i, \theta^*_i)\}$ of molecular Hamiltonians and their VQE-converged parameters can generate initialization vectors $\theta_0 = \mathcal{F}_W(H_{\text{new}})$ that reduce VQE convergence iterations by $\geq 40\%$ compared to random initialization $\theta_0 \sim \text{Uniform}[0, 2\pi]^M$, without sacrificing final energy quality (within 5 mHartree).*
+> *A transformer encoder F_W(H) trained on pairs {(H_i, θ*_i)} of molecular Hamiltonians and their VQE-converged parameters can generate initialization vectors θ₀ = F_W(H_new) that reduce VQE convergence iterations by ≥ 40% compared to random initialization θ₀ ~ Uniform[0, 2π]^M, without sacrificing final energy quality (within 5 mHartree).*
 
 ---
 
@@ -45,24 +47,26 @@ If a machine learning model can learn a mapping $\mathcal{F}: H \rightarrow \the
 
 ### 3.1 Hamiltonian Token Encoding
 
-Each Hamiltonian $H = \sum_k h_k P_k$ is tokenized into a matrix:
+Each Hamiltonian H = ∑_k h_k P_k is tokenized into a matrix:
 
-$$\text{token}_k = [\text{one-hot}(\sigma_1^{(k)}), ..., \text{one-hot}(\sigma_N^{(k)}), \bar{h}_k]$$
+```
+token_k = [ one-hot(σ₁^(k)), ..., one-hot(σ_N^(k)), h̄_k ]
+```
 
-where $\bar{h}_k = h_k / \max_j|h_j|$ normalizes the coefficient to $[-1, 1]$.
+where h̄_k = h_k / max_j |h_j| normalizes the coefficient to [-1, 1].
 
-Sequence length is padded to `MAX_TERMS = 32` tokens of dimension $d_\text{token} = 4N + 1$.
+Sequence length is padded to `MAX_TERMS = 32` tokens of dimension d_token = 4N + 1.
 
 ### 3.2 Transformer Architecture
 
 | Component | Specification |
 | :--- | :--- |
-| Token projection | $\mathbb{R}^{17} \rightarrow \mathbb{R}^{32}$ |
-| Multi-head attention | $h=2$ heads, $d_k = 16$ |
-| Feed-forward layer | $32 \rightarrow 128 \rightarrow 32$, ReLU |
+| Token projection | R¹⁷ → R³² |
+| Multi-head attention | h = 2 heads, d_k = 16 |
+| Feed-forward layer | 32 → 128 → 32, ReLU |
 | Layer Normalization | Numerically stabilized LayerNorm |
-| Global Pooling | Sequence average pooling $\mathbb{R}^{32}$ |
-| Output head | Linear layer $\mathbb{R}^{32} \rightarrow \mathbb{R}^M$ |
+| Global Pooling | Sequence average pooling R³² |
+| Output head | Linear layer R³² → R^M |
 | **Total parameters** | **13,156** |
 
 ---
@@ -71,7 +75,7 @@ Sequence length is padded to `MAX_TERMS = 32` tokens of dimension $d_\text{token
 
 ### 4.1 Loss Convergence During Training
 
-Trained over 20 epochs on a dataset of 60 molecular Hamiltonians ($N=4$ qubits):
+Trained over 20 epochs on a dataset of 60 molecular Hamiltonians (N = 4 qubits):
 
 | Epoch | MSE Loss | Change |
 | :---: | :---: | :---: |
@@ -81,9 +85,9 @@ Trained over 20 epochs on a dataset of 60 molecular Hamiltonians ($N=4$ qubits):
 | 15 | 5.518 | -60.0% |
 | **20** | **4.555** | **-67.0%** |
 
-### 4.2 Molecular $H_2$ Ground State Estimation
+### 4.2 Molecular H₂ Ground State Estimation
 
-Comparing VQE optimization trajectories on $H_2$ in STO-3G basis:
+Comparing VQE optimization trajectories on H₂ in STO-3G basis:
 
 | Initialization Method | Iterations | Final Energy (Hartree) | Energy Error vs Exact |
 | :--- | :---: | :---: | :---: |
