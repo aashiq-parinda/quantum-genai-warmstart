@@ -25,19 +25,22 @@ from typing import Tuple
 
 
 def softmax(x: np.ndarray, axis: int = -1) -> np.ndarray:
-    x = x - x.max(axis=axis, keepdims=True)
-    e = np.exp(x)
-    return e / e.sum(axis=axis, keepdims=True)
+    x_clipped = np.clip(x, -50.0, 50.0)
+    x_shift = x_clipped - np.max(x_clipped, axis=axis, keepdims=True)
+    e = np.exp(x_shift)
+    s = np.sum(e, axis=axis, keepdims=True)
+    return e / np.maximum(s, 1e-12)
 
 
 def relu(x: np.ndarray) -> np.ndarray:
     return np.maximum(0.0, x)
 
 
-def layer_norm(x: np.ndarray, eps: float = 1e-6) -> np.ndarray:
-    mean = x.mean(axis=-1, keepdims=True)
-    std = x.std(axis=-1, keepdims=True) + eps
-    return (x - mean) / std
+def layer_norm(x: np.ndarray, eps: float = 1e-5) -> np.ndarray:
+    mean = np.mean(x, axis=-1, keepdims=True)
+    std = np.std(x, axis=-1, keepdims=True) + eps
+    normalized = (x - mean) / std
+    return np.clip(normalized, -10.0, 10.0)
 
 
 class ParameterTransformer:
