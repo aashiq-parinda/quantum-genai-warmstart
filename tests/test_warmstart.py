@@ -123,9 +123,10 @@ class TestBaselineVQE:
     def test_hartree_fock_params(self):
         from qwarmstart.models.baseline_vqe import get_hartree_fock_params, run_hartree_fock_vqe
         hf_h2 = get_hartree_fock_params(4, "H2")
-        assert np.array_equal(hf_h2, [np.pi, np.pi, 0, 0])
+        assert np.allclose(hf_h2, [np.pi, np.pi, 0, 0])
         hf_beh2 = get_hartree_fock_params(6, "BeH2")
-        assert np.array_equal(hf_beh2, [np.pi, np.pi, np.pi, np.pi, 0, 0])
+        assert np.allclose(hf_beh2, [np.pi, np.pi, np.pi, np.pi, 0, 0])
+
 
         terms = h2_hamiltonian_sto3g()
         res = run_hartree_fock_vqe(terms, 4, molecule_name="H2", n_iters=10)

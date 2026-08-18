@@ -134,8 +134,63 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 """
 
 
+def format_latex_math(text: str) -> str:
+    """Clean and convert inline LaTeX mathematical expressions into clean HTML typography."""
+    if not text:
+        return text
+
+    # Common LaTeX replacements
+    replacements = [
+        (r'\\text\{\\AA\}', 'Å'),
+        (r'\\,\text\{\\AA\}', 'Å'),
+        (r'\\text\{Ha\}', 'Ha'),
+        (r'\\,\text\{Ha\}', 'Ha'),
+        (r'\\text\{mHa\}', 'mHa'),
+        (r'\\pm', '±'),
+        (r'\\theta', 'θ'),
+        (r'\\pi', 'π'),
+        (r'\\sigma', 'σ'),
+        (r'\\alpha', 'α'),
+        (r'\\partial', '∂'),
+        (r'\\ge', '≥'),
+        (r'\\le', '≤'),
+        (r'\\approx', '≈'),
+        (r'\\times', '×'),
+        (r'\\mathcal\{F\}', 'F'),
+        (r'\\mathbb\{R\}', 'ℝ'),
+        (r'H_2', 'H₂'),
+        (r'LiH', 'LiH'),
+        (r'BeH_2', 'BeH₂'),
+        (r'H_4', 'H₄'),
+        (r'\\theta_0', 'θ₀'),
+        (r'\\theta_k', 'θₖ'),
+        (r'\\theta_\{HF\}', 'θ_HF'),
+        (r'\\theta_\{\\text\{HF\}\}', 'θ_HF'),
+        (r'\\text\{HF\}', 'HF'),
+        (r'\\text\{one-hot\}', 'one-hot'),
+    ]
+
+    for pat, repl in replacements:
+        text = re.sub(pat, repl, text)
+
+    # Process inline math $...$
+    def clean_math_match(match):
+        m = match.group(1)
+        # Remove nested \text{}
+        m = re.sub(r'\\text\{(.*?)\}', r'\1', m)
+        # Replace remaining latex tokens inside math
+        for pat, repl in replacements:
+            m = re.sub(pat, repl, m)
+        m = m.replace('\\', '')
+        return f'<span class="math-inline">{m}</span>'
+
+    text = re.sub(r'\$(.*?)\$', clean_math_match, text)
+    return text
+
+
 def format_inline_markdown(text: str) -> str:
-    """Convert inline markdown formatting (**bold**, *italic*, `code`) to clean HTML."""
+    """Convert inline markdown formatting (**bold**, *italic*, `code`, latex) to clean HTML."""
+    text = format_latex_math(text)
     # Bold **text**
     text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
     # Italic *text*
@@ -166,6 +221,12 @@ def parse_md_to_html(md_text: str) -> str:
 
         if in_code:
             code_lines.append(line)
+            continue
+
+        # Display math $$ ... $$
+        if line.startswith('$$') and line.endswith('$$'):
+            math_expr = format_latex_math(line.strip('$'))
+            html_out.append(f'<div class="math-display">{math_expr}</div>')
             continue
 
         # Table parsing
@@ -207,6 +268,17 @@ def parse_md_to_html(md_text: str) -> str:
             p_text = format_inline_markdown(line)
             html_out.append(f"<p>{p_text}</p>")
 
+    if in_table and table_rows:
+        tbl_html = ["<table>"]
+        for r_idx, row in enumerate(table_rows):
+            tbl_html.append("<tr>")
+            tag = "th" if r_idx == 0 else "td"
+            for cell in row:
+                tbl_html.append(f"<{tag}>{cell}</{tag}>")
+            tbl_html.append("</tr>")
+        tbl_html.append("</table>")
+        html_out.append("\n".join(tbl_html))
+
     return "\n".join(html_out)
 
 
@@ -236,3 +308,4 @@ def convert_md_to_watermark_free_pdf(md_path: str, pdf_path: str, title: str):
 
 if __name__ == "__main__":
     convert_md_to_watermark_free_pdf("docs/PREPRINT_DRAFT.md", "docs/PREPRINT_DRAFT.pdf", "GenAI WarmStart Preprint")
+
