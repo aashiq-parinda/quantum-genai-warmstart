@@ -83,3 +83,85 @@ def run_baseline_vqe(
     result["init_type"] = "random"
     result["initial_params"] = initial_params
     return result
+
+
+def run_baseline_vqe_multi_seed(
+    pauli_terms: List[Tuple[str, float]],
+    n_qubits: int,
+    seeds: List[int] = list(range(10)),
+    **kwargs,
+) -> Dict[str, Any]:
+    """Run VQE across multiple random seeds and calculate summary statistics.
+
+    Returns
+    -------
+    dict with:
+      - 'energies': array of final energies
+      - 'iterations': array of convergence iteration counts
+      - 'energy_mean': float
+      - 'energy_std': float
+      - 'iter_mean': float
+      - 'iter_std': float
+      - 'runs': list of individual run results
+    """
+    runs = [run_baseline_vqe(pauli_terms, n_qubits, rng_seed=s, **kwargs) for s in seeds]
+    energies = np.array([r["energy"] for r in runs], dtype=np.float64)
+    iterations = np.array([r["converged_at"] for r in runs], dtype=np.float64)
+
+    return {
+        "energies": energies,
+        "iterations": iterations,
+        "energy_mean": float(np.mean(energies)),
+        "energy_std": float(np.std(energies)),
+        "iter_mean": float(np.mean(iterations)),
+        "iter_std": float(np.std(iterations)),
+        "runs": runs,
+    }
+
+
+def get_hartree_fock_params(n_qubits: int, molecule_name: str = None) -> np.ndarray:
+
+    """Generate Hartree-Fock reference state parameters for single-qubit Ry rotation ansatz.
+
+    Occupied orbitals (first n_electrons spin-orbitals) receive θ = π (state |1⟩),
+    virtual orbitals receive θ = 0 (state |0⟩).
+
+    Parameters
+    ----------
+    n_qubits : int
+    molecule_name : str, optional ('H2', 'LiH', 'BeH2', 'H4')
+
+    Returns
+    -------
+    np.ndarray shape (n_qubits,) — Hartree-Fock initial angles
+    """
+    if molecule_name == "H2":
+        n_elec = 2
+    elif molecule_name == "LiH":
+        n_elec = 2
+    elif molecule_name == "BeH2":
+        n_elec = 4
+    elif molecule_name == "H4":
+        n_elec = 4
+    else:
+        n_elec = max(1, n_qubits // 2)
+
+    params = np.zeros(n_qubits, dtype=np.float32)
+    params[:min(n_elec, n_qubits)] = np.pi
+    return params
+
+
+def run_hartree_fock_vqe(
+    pauli_terms: List[Tuple[str, float]],
+    n_qubits: int,
+    molecule_name: str = None,
+    **kwargs,
+) -> Dict[str, Any]:
+    """Run VQE initialized from Hartree-Fock classical parameters."""
+    hf_params = get_hartree_fock_params(n_qubits, molecule_name=molecule_name)
+    result = run_vqe_from_init(pauli_terms, n_qubits, hf_params, **kwargs)
+    result["init_type"] = "hartree_fock"
+    result["initial_params"] = hf_params
+    return result
+
+
