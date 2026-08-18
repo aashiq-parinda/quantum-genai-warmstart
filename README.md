@@ -3,11 +3,11 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Tests: 18/18 Passed](https://img.shields.io/badge/tests-18%2F18%20passing-brightgreen)](#-testing)
-[![DOI: 10.5281/zenodo.21979940](https://zenodo.org/badge/DOI/10.5281/zenodo.21979940.svg)](https://doi.org/10.5281/zenodo.21979940)
+[![DOI: 10.5281/zenodo.21998273](https://zenodo.org/badge/DOI/10.5281/zenodo.21998273.svg)](https://doi.org/10.5281/zenodo.21998273)
 
 This repository contains an expanded, empirical generalization study at the intersection of **Generative AI and Quantum Computing**:
 
-> **Ashraf Khan (2026).** *Transformer-Accelerated Variational Quantum Eigensolvers via Parameter Warm-Starting: A Multi-Molecule Generalization & Diagnostic Study.* [DOI: 10.5281/zenodo.21979940](https://doi.org/10.5281/zenodo.21979940).
+> **Ashraf Khan (2026).** *Transformer-Accelerated Variational Quantum Eigensolvers via Parameter Warm-Starting: A Multi-Molecule Generalization & Diagnostic Study.* [DOI: 10.5281/zenodo.21998273](https://doi.org/10.5281/zenodo.21998273).
 
 ---
 
