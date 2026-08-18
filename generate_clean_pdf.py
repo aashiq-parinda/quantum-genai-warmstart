@@ -135,62 +135,91 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
 
 def format_latex_math(text: str) -> str:
-    """Clean and convert inline LaTeX mathematical expressions into clean HTML typography."""
+    """Clean and convert LaTeX mathematical expressions into clean HTML typography."""
     if not text:
         return text
 
-    # Common LaTeX replacements
-    replacements = [
-        (r'\\text\{\\AA\}', 'Å'),
-        (r'\\,\text\{\\AA\}', 'Å'),
-        (r'\\text\{Ha\}', 'Ha'),
-        (r'\\,\text\{Ha\}', 'Ha'),
-        (r'\\text\{mHa\}', 'mHa'),
-        (r'\\pm', '±'),
-        (r'\\theta', 'θ'),
-        (r'\\pi', 'π'),
-        (r'\\sigma', 'σ'),
-        (r'\\alpha', 'α'),
-        (r'\\partial', '∂'),
-        (r'\\ge', '≥'),
-        (r'\\le', '≤'),
-        (r'\\approx', '≈'),
-        (r'\\times', '×'),
-        (r'\\mathcal\{F\}', 'F'),
-        (r'\\mathbb\{R\}', 'ℝ'),
-        (r'H_2', 'H₂'),
-        (r'LiH', 'LiH'),
-        (r'BeH_2', 'BeH₂'),
-        (r'H_4', 'H₄'),
-        (r'\\theta_0', 'θ₀'),
-        (r'\\theta_k', 'θₖ'),
-        (r'\\theta_\{HF\}', 'θ_HF'),
-        (r'\\theta_\{\\text\{HF\}\}', 'θ_HF'),
-        (r'\\text\{HF\}', 'HF'),
-        (r'\\text\{one-hot\}', 'one-hot'),
-    ]
+    def convert_expr(m_str: str) -> str:
+        s = m_str.strip()
+        
+        # Replace \text{...} -> plain text inside math
+        s = re.sub(r'\\text\{(.*?)\}', r'\1', s)
+        
+        # Replace \bar{X} -> X̄ (combining macron U+0304)
+        s = re.sub(r'\\bar\{([a-zA-Z0-9_]+)\}', r'\1&#772;', s)
+        
+        # Greek letters
+        greeks = [
+            (r'\sigma', 'σ'),
+            (r'\theta', 'θ'),
+            (r'\pi', 'π'),
+            (r'\alpha', 'α'),
+            (r'\lambda', 'λ'),
+            (r'\psi', 'ψ'),
+            (r'\eps', 'ε'),
+            (r'\epsilon', 'ε'),
+        ]
+        for pat, repl in greeks:
+            s = s.replace(pat, repl)
 
-    for pat, repl in replacements:
-        text = re.sub(pat, repl, text)
+        # Math operators and symbols
+        ops = [
+            (r'\sum', '∑'),
+            (r'\prod', '∏'),
+            (r'\dots', '…'),
+            (r'\cdots', '⋯'),
+            (r'\max', 'max'),
+            (r'\min', 'min'),
+            (r'\partial', '∂'),
+            (r'\times', '×'),
+            (r'\pm', '±'),
+            (r'\ge', '≥'),
+            (r'\le', '≤'),
+            (r'\approx', '≈'),
+            (r'\to', '→'),
+            (r'\rightarrow', '→'),
+            (r'\sim', '~'),
+            (r'\mathcal{F}', 'ℱ'),
+            (r'\mathbb{R}', 'ℝ'),
+            (r'\AA', 'Å'),
+        ]
+        for pat, repl in ops:
+            s = s.replace(pat, repl)
+
+        # Handle superscripts: ^{(k)}, ^{33}, ^M, etc.
+        s = re.sub(r'\^\{([^}]+)\}', r'<sup>\1</sup>', s)
+        s = re.sub(r'\^([a-zA-Z0-9]+)', r'<sup>\1</sup>', s)
+
+        # Handle subscripts: _{max}, _{token}, _{HF}, _k, _1, _0, etc.
+        s = re.sub(r'_\{([^}]+)\}', r'<sub>\1</sub>', s)
+        s = re.sub(r'_([a-zA-Z0-9]+)', r'<sub>\1</sub>', s)
+
+        # Clean remaining backslashes
+        s = s.replace('\\', '')
+        return s
+
+    # Process display math $$...$$
+    def display_math_sub(match):
+        expr = match.group(1)
+        cleaned = convert_expr(expr)
+        return f'<div class="math-display" style="text-align:center; margin:10px 0; font-family:\'Times New Roman\', Times, serif; font-size:11pt; font-style:italic;">{cleaned}</div>'
 
     # Process inline math $...$
-    def clean_math_match(match):
-        m = match.group(1)
-        # Remove nested \text{}
-        m = re.sub(r'\\text\{(.*?)\}', r'\1', m)
-        # Replace remaining latex tokens inside math
-        for pat, repl in replacements:
-            m = re.sub(pat, repl, m)
-        m = m.replace('\\', '')
-        return f'<span class="math-inline">{m}</span>'
+    def inline_math_sub(match):
+        expr = match.group(1)
+        cleaned = convert_expr(expr)
+        return f'<span class="math-inline" style="font-family:\'Times New Roman\', Times, serif; font-style:italic;">{cleaned}</span>'
 
-    text = re.sub(r'\$(.*?)\$', clean_math_match, text)
+    text = re.sub(r'\$\$(.*?)\$\$', display_math_sub, text, flags=re.DOTALL)
+    text = re.sub(r'\$(.*?)\$', inline_math_sub, text)
     return text
 
 
 def format_inline_markdown(text: str) -> str:
-    """Convert inline markdown formatting (**bold**, *italic*, `code`, latex) to clean HTML."""
+    """Convert inline markdown formatting (**bold**, *italic*, `code`, links, latex) to clean HTML."""
     text = format_latex_math(text)
+    # Links [text](url)
+    text = re.sub(r'\[(.*?)\]\((.*?)\)', r'<a href="\2">\1</a>', text)
     # Bold **text**
     text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
     # Italic *text*
@@ -207,9 +236,23 @@ def parse_md_to_html(md_text: str) -> str:
     code_lines = []
     in_table = False
     table_rows = []
+    in_ol = False
+    in_ul = False
+
+    def close_lists():
+        nonlocal in_ol, in_ul
+        res = []
+        if in_ol:
+            res.append("</ol>")
+            in_ol = False
+        if in_ul:
+            res.append("</ul>")
+            in_ul = False
+        return res
 
     for line in lines:
         if line.startswith('```'):
+            html_out.extend(close_lists())
             if in_code:
                 code_content = "\n".join(code_lines).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
                 html_out.append(f"<pre><code>{code_content}</code></pre>")
@@ -225,12 +268,14 @@ def parse_md_to_html(md_text: str) -> str:
 
         # Display math $$ ... $$
         if line.startswith('$$') and line.endswith('$$'):
-            math_expr = format_latex_math(line.strip('$'))
-            html_out.append(f'<div class="math-display">{math_expr}</div>')
+            html_out.extend(close_lists())
+            math_expr = format_latex_math(line)
+            html_out.append(math_expr)
             continue
 
         # Table parsing
         if '|' in line and line.strip().startswith('|'):
+            html_out.extend(close_lists())
             if ':---' in line or '---' in line:
                 continue
             cells = [format_inline_markdown(c.strip()) for c in line.split('|')[1:-1]]
@@ -252,6 +297,30 @@ def parse_md_to_html(md_text: str) -> str:
                 table_rows = []
             in_table = False
 
+        # Ordered list
+        m_ol = re.match(r'^\s*(\d+)\.\s+(.*)$', line)
+        if m_ol:
+            if not in_ol:
+                html_out.extend(close_lists())
+                html_out.append("<ol>")
+                in_ol = True
+            item_text = format_inline_markdown(m_ol.group(2))
+            html_out.append(f"<li>{item_text}</li>")
+            continue
+
+        # Unordered list
+        m_ul = re.match(r'^\s*[-\*]\s+(.*)$', line)
+        if m_ul:
+            if not in_ul:
+                html_out.extend(close_lists())
+                html_out.append("<ul>")
+                in_ul = True
+            item_text = format_inline_markdown(m_ul.group(1))
+            html_out.append(f"<li>{item_text}</li>")
+            continue
+
+        html_out.extend(close_lists())
+
         if line.startswith('# '):
             html_out.append(f"<h1>{format_inline_markdown(line[2:])}</h1>")
         elif line.startswith('## '):
@@ -267,6 +336,8 @@ def parse_md_to_html(md_text: str) -> str:
         else:
             p_text = format_inline_markdown(line)
             html_out.append(f"<p>{p_text}</p>")
+
+    html_out.extend(close_lists())
 
     if in_table and table_rows:
         tbl_html = ["<table>"]
