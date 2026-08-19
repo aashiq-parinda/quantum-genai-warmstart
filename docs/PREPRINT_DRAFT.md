@@ -1,8 +1,8 @@
 # Rigorous Generalization Study: Transformer-Accelerated VQE Warm-Starting Across Multi-Molecule Families
 
 **Author**: Ashraf Khan  
-**Status**: *Published Research Preprint — DOI: 10.5281/zenodo.21998273*  
-**Zenodo Record**: [zenodo.org/records/21998273](https://zenodo.org/records/21998273)  
+**Status**: *Published Research Preprint — DOI: 10.5281/zenodo.22013110*  
+**Zenodo Record**: [zenodo.org/records/22013110](https://zenodo.org/records/22013110)  
 **Repository**: [github.com/aashiq-parinda/quantum-genai-warmstart](https://github.com/aashiq-parinda/quantum-genai-warmstart)
 
 ---
