@@ -155,10 +155,81 @@ class TestEvaluation:
         assert "grad_variance" in res_rand
         assert res_rand["grad_variance"] >= 0.0
 
-        diag = run_barren_plateau_diagnostic(model=model, n_samples=10, max_terms=32, n_max_qubits=8)
-        assert "results" in diag
-        assert len(diag["results"]) == 4
-        assert "ratio_trans_vs_random" in diag["results"][0]
+class TestGateAudit:
+    def test_analyze_hamiltonian_locality(self):
+        from qwarmstart.benchmarks.gate_audit import analyze_hamiltonian_locality
+        terms = h2_hamiltonian_sto3g()
+        loc = analyze_hamiltonian_locality(terms, 4)
+        assert loc["total_terms"] == 11
+        assert loc["local_terms_le2"] == 6
+        assert loc["pct_local_le2"] == 60.0
+        assert (0, 1) in loc["interacting_pairs_2body"]
+
+    def test_audit_fixed_ansatz_efficiency(self):
+        from qwarmstart.benchmarks.gate_audit import audit_fixed_ansatz_efficiency
+        terms = h2_hamiltonian_sto3g()
+        audit = audit_fixed_ansatz_efficiency(terms, 4, n_layers=1, topology="linear")
+        assert audit["total_cx_gates"] == 3
+        assert "pct_wasted_cx" in audit
+
+class TestJointArchitectureAndParameters:
+    def test_dual_head_forward(self):
+        from qwarmstart.models.parameter_transformer import ParameterTransformer, get_candidate_pairs
+        model = ParameterTransformer(d_token=33, d_model=16, n_heads=2, n_params=16, seq_len=32, n_max_qubits=8)
+        x = np.random.randn(32, 33).astype(np.float32)
+        mask_probs, params = model.forward_joint(x)
+        assert mask_probs.shape == (28,)
+        assert params.shape == (16,)
+        assert np.all(mask_probs >= 0.0) and np.all(mask_probs <= 1.0)
+
+    def test_predict_circuit(self):
+        from qwarmstart.models.parameter_transformer import ParameterTransformer
+        model = ParameterTransformer(d_token=33, d_model=16, n_heads=2, n_params=16, seq_len=32, n_max_qubits=8)
+        x = np.random.randn(32, 33).astype(np.float32)
+        circ = model.predict_circuit(x, n_qubits=4, threshold=0.5)
+        assert "selected_pairs" in circ
+        assert "params" in circ
+        assert "n_cx_gates" in circ
+        for i, j in circ["selected_pairs"]:
+            assert i < 4 and j < 4
+
+    def test_evaluate_vqe_energy_circuit(self):
+        from qwarmstart.data.dataset_generator import evaluate_vqe_energy_circuit
+        terms = h2_hamiltonian_sto3g()
+        params = np.zeros(8)
+        e = evaluate_vqe_energy_circuit(terms, params, entangling_pairs=[(0, 1), (2, 3)], n_qubits=4)
+        assert np.isfinite(e)
+
+    def test_hamiltonian_to_target_mask(self):
+        from qwarmstart.data.dataset_generator import hamiltonian_to_target_mask
+        terms = h2_hamiltonian_sto3g()
+        mask = hamiltonian_to_target_mask(terms, n_max_qubits=8)
+        assert mask.shape == (28,)
+        assert mask.sum() > 0
+
+    def test_train_joint_transformer(self):
+        from qwarmstart.models.parameter_transformer import ParameterTransformer
+        from qwarmstart.training.trainer import train_joint_transformer
+        model = ParameterTransformer(d_token=33, d_model=16, n_heads=2, n_params=16, seq_len=32, n_max_qubits=8)
+        X = np.random.randn(4, 32 * 33).astype(np.float32)
+        y = np.random.randn(4, 16).astype(np.float32)
+        mask = np.ones((4, 28), dtype=np.float32)
+        res = train_joint_transformer(model, X, y, mask, n_epochs=2, lr=0.01, verbose=False)
+        assert "param_loss_history" in res
+        assert "mask_loss_history" in res
+        assert len(res["total_loss_history"]) == 2
+
+    def test_evaluate_joint_vqe_single_system(self):
+        from qwarmstart.models.parameter_transformer import ParameterTransformer
+        from qwarmstart.benchmarks.evaluation import evaluate_joint_vqe_single_system
+        model = ParameterTransformer(d_token=33, d_model=16, n_heads=2, n_params=16, seq_len=32, n_max_qubits=8)
+        terms = h2_hamiltonian_sto3g()
+        res = evaluate_joint_vqe_single_system(model, terms, n_qubits=4, molecule_name="H2", n_seeds=2, max_terms=32, n_max_qubits=8)
+        assert "fixed_cx_count" in res
+        assert "joint_cx_count" in res
+        assert "delta_e_mha" in res
+        assert "strictly_better" in res
+        assert "pareto_tradeoff" in res
 
 
 

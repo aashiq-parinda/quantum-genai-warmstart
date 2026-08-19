@@ -20,38 +20,66 @@ from qwarmstart.data.hamiltonian_encoder import (
 )
 
 
-def evaluate_vqe_energy(
+def evaluate_vqe_energy_circuit(
     pauli_terms: List[Tuple[str, float]],
     params: np.ndarray,
+    entangling_pairs: List[Tuple[int, int]],
     n_qubits: int,
 ) -> float:
-    """Evaluate VQE energy expectation E(θ) = ⟨ψ(θ)|H|ψ(θ)⟩.
+    """Evaluate VQE energy expectation E(θ, E_pairs) = ⟨ψ(θ, E_pairs)|H|ψ(θ, E_pairs)⟩.
 
-    Uses Ry(θ_i) single-qubit ansatz on each qubit.
+    Ansatz:
+      1. Layer 1 single-qubit Ry(θ_i) rotations for i in range(n_qubits).
+      2. 2-qubit CNOT gates on specified entangling_pairs.
+      3. Layer 2 single-qubit Ry(θ_{n_qubits + i}) rotations if len(params) >= 2*n_qubits.
 
     Parameters
     ----------
     pauli_terms : list of (pauli_str, coefficient)
-    params : np.ndarray shape (n_qubits,) — Ry rotation angles
+    params : np.ndarray shape (n_qubits,) or (2*n_qubits,)
+    entangling_pairs : list of (control, target) qubit pairs
     n_qubits : int
 
     Returns
     -------
     float — energy expectation value
     """
-    # Build |ψ(θ)⟩ = ⊗_i Ry(θ_i)|0⟩
-    single_qubit_states = []
-    for i in range(n_qubits):
-        theta = params[i] if i < len(params) else 0.0
-        psi_i = np.array([np.cos(theta / 2), np.sin(theta / 2)], dtype=complex)
-        single_qubit_states.append(psi_i)
+    psi = np.zeros(2**n_qubits, dtype=complex)
+    psi[0] = 1.0
 
-    # Build full statevector |ψ⟩ via tensor product
-    psi = single_qubit_states[0]
-    for i in range(1, n_qubits):
-        psi = np.kron(psi, single_qubit_states[i])
+    # Layer 1: Ry rotations
+    for q in range(n_qubits):
+        th = params[q] if q < len(params) else 0.0
+        Ry = np.array([[np.cos(th / 2), -np.sin(th / 2)], [np.sin(th / 2), np.cos(th / 2)]], dtype=complex)
+        psi_tensor = psi.reshape([2] * n_qubits)
+        psi_tensor = np.tensordot(Ry, psi_tensor, axes=([1], [q]))
+        psi = np.moveaxis(psi_tensor, 0, q).reshape(-1)
 
-    Pauli = {
+    # Layer 2: Entangling CNOT gates
+    CX = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]], dtype=complex).reshape(2, 2, 2, 2)
+    for c, t in entangling_pairs:
+        if c >= n_qubits or t >= n_qubits or c == t:
+            continue
+        psi_tensor = psi.reshape([2] * n_qubits)
+        if c < t:
+            out = np.tensordot(CX, psi_tensor, axes=([2, 3], [c, t]))
+            psi = np.moveaxis(out, [0, 1], [c, t]).reshape(-1)
+        else:
+            CX_tc = np.moveaxis(CX, [0, 1, 2, 3], [1, 0, 3, 2])
+            out = np.tensordot(CX_tc, psi_tensor, axes=([2, 3], [t, c]))
+            psi = np.moveaxis(out, [0, 1], [t, c]).reshape(-1)
+
+    # Layer 3: Ry rotations after entanglement if 2*n_qubits params provided
+    if len(params) >= 2 * n_qubits:
+        for q in range(n_qubits):
+            th = params[n_qubits + q]
+            Ry = np.array([[np.cos(th / 2), -np.sin(th / 2)], [np.sin(th / 2), np.cos(th / 2)]], dtype=complex)
+            psi_tensor = psi.reshape([2] * n_qubits)
+            psi_tensor = np.tensordot(Ry, psi_tensor, axes=([1], [q]))
+            psi = np.moveaxis(psi_tensor, 0, q).reshape(-1)
+
+    # Compute energy expectation <psi|H|psi>
+    Pauli_dict = {
         "I": np.eye(2, dtype=complex),
         "X": np.array([[0, 1], [1, 0]], dtype=complex),
         "Y": np.array([[0, -1j], [1j, 0]], dtype=complex),
@@ -60,17 +88,50 @@ def evaluate_vqe_energy(
 
     energy = 0.0
     for pauli_str, coeff in pauli_terms:
-        # Pad pauli_str with 'I' up to n_qubits if shorter
-        if len(pauli_str) < n_qubits:
-            pauli_str = pauli_str + "I" * (n_qubits - len(pauli_str))
-        
-        # Build Pauli tensor P_k
-        P = Pauli[pauli_str[0].upper()]
-        for ch in pauli_str[1:n_qubits]:
-            P = np.kron(P, Pauli[ch.upper()])
-        energy += coeff * float(np.real(psi.conj() @ P @ psi))
+        p = pauli_str + "I" * max(0, n_qubits - len(pauli_str))
+        P_psi = psi.copy()
+        for q in range(n_qubits):
+            ch = p[q].upper()
+            if ch != "I":
+                op = Pauli_dict[ch]
+                P_tensor = P_psi.reshape([2] * n_qubits)
+                P_tensor = np.tensordot(op, P_tensor, axes=([1], [q]))
+                P_psi = np.moveaxis(P_tensor, 0, q).reshape(-1)
+        energy += coeff * float(np.real(np.vdot(psi, P_psi)))
 
     return energy
+
+
+def evaluate_vqe_energy(
+    pauli_terms: List[Tuple[str, float]],
+    params: np.ndarray,
+    n_qubits: int,
+) -> float:
+    """Evaluate VQE energy expectation for product Ry state (0 entangling gates)."""
+    return evaluate_vqe_energy_circuit(pauli_terms, params, entangling_pairs=[], n_qubits=n_qubits)
+
+
+def hamiltonian_to_target_mask(
+    pauli_terms: List[Tuple[str, float]],
+    n_max_qubits: int = 8,
+) -> np.ndarray:
+    """Extract ground-truth 2-body interaction binary mask for candidate pairs."""
+    from qwarmstart.models.parameter_transformer import get_candidate_pairs
+    candidate_pairs = get_candidate_pairs(n_max_qubits)
+    mask = np.zeros(len(candidate_pairs), dtype=np.float32)
+
+    interacting_pairs = set()
+    for p_str, coeff in pauli_terms:
+        active = [i for i, ch in enumerate(p_str) if ch.upper() != "I"]
+        if len(active) == 2:
+            i, j = sorted(active)
+            interacting_pairs.add((i, j))
+
+    for idx, (i, j) in enumerate(candidate_pairs):
+        if (i, j) in interacting_pairs:
+            mask[idx] = 1.0
+
+    return mask
 
 
 def run_vqe_optimization(
@@ -134,6 +195,7 @@ def generate_dataset(
 def generate_molecular_dataset(
     n_max_qubits: int = 8,
     max_hamiltonian_terms: int = 64,
+    n_random: int = 15,
     rng_seed: int = 42,
 ) -> Dict[str, Dict[str, Any]]:
     """Generate structured multi-molecule dataset split into Train, Interpolation, and Held-Out OOD.
@@ -158,21 +220,29 @@ def generate_molecular_dataset(
 
     # Add random 4-qubit and 6-qubit Hamiltonians
     rng = np.random.default_rng(rng_seed)
-    for _ in range(40):
+    for _ in range(n_random):
         nq = int(rng.choice([4, 6]))
         train_specs.append(("Random", nq, random_hamiltonian(nq, 12, rng_seed=int(rng.integers(0, 1000000)))))
 
+    from qwarmstart.models.parameter_transformer import get_candidate_pairs
+    candidate_pairs = get_candidate_pairs(n_max_qubits)
+    n_pairs = len(candidate_pairs)
+
     X_train = np.zeros((len(train_specs), d_flat), dtype=np.float32)
-    y_train = np.zeros((len(train_specs), n_max_qubits), dtype=np.float32)
+    y_train = np.zeros((len(train_specs), n_max_qubits * 2), dtype=np.float32)
+    mask_train = np.zeros((len(train_specs), n_pairs), dtype=np.float32)
     E_train = np.zeros(len(train_specs), dtype=np.float32)
     meta_train = []
 
     for i, (name, nq, terms) in enumerate(train_specs):
         X_train[i] = hamiltonian_to_flat_vector(terms, n_max_qubits, max_hamiltonian_terms)
+        mask_train[i] = hamiltonian_to_target_mask(terms, n_max_qubits)
         opt_params, opt_e = run_vqe_optimization(terms, nq, rng_seed=i)
         y_train[i, :nq] = opt_params
+        # duplicate/expand for 2-layer parameters
+        y_train[i, n_max_qubits: n_max_qubits + nq] = opt_params
         E_train[i] = opt_e
-        meta_train.append({"molecule": name, "n_qubits": nq})
+        meta_train.append({"molecule": name, "n_qubits": nq, "terms": terms})
 
     # 2. Validation Set: Interpolation on unseen bond lengths of H2 and LiH
     val_specs = [
@@ -182,14 +252,17 @@ def generate_molecular_dataset(
     ]
 
     X_val = np.zeros((len(val_specs), d_flat), dtype=np.float32)
-    y_val = np.zeros((len(val_specs), n_max_qubits), dtype=np.float32)
+    y_val = np.zeros((len(val_specs), n_max_qubits * 2), dtype=np.float32)
+    mask_val = np.zeros((len(val_specs), n_pairs), dtype=np.float32)
     E_val = np.zeros(len(val_specs), dtype=np.float32)
     meta_val = []
 
     for i, (name, nq, terms, r) in enumerate(val_specs):
         X_val[i] = hamiltonian_to_flat_vector(terms, n_max_qubits, max_hamiltonian_terms)
+        mask_val[i] = hamiltonian_to_target_mask(terms, n_max_qubits)
         opt_params, opt_e = run_vqe_optimization(terms, nq, rng_seed=100 + i)
         y_val[i, :nq] = opt_params
+        y_val[i, n_max_qubits: n_max_qubits + nq] = opt_params
         E_val[i] = opt_e
         meta_val.append({"molecule": name, "n_qubits": nq, "bond_length": r, "terms": terms})
 
@@ -201,20 +274,23 @@ def generate_molecular_dataset(
     ]
 
     X_test = np.zeros((len(test_specs), d_flat), dtype=np.float32)
-    y_test = np.zeros((len(test_specs), n_max_qubits), dtype=np.float32)
+    y_test = np.zeros((len(test_specs), n_max_qubits * 2), dtype=np.float32)
+    mask_test = np.zeros((len(test_specs), n_pairs), dtype=np.float32)
     E_test = np.zeros(len(test_specs), dtype=np.float32)
     meta_test = []
 
     for i, (name, nq, terms, r) in enumerate(test_specs):
         X_test[i] = hamiltonian_to_flat_vector(terms, n_max_qubits, max_hamiltonian_terms)
+        mask_test[i] = hamiltonian_to_target_mask(terms, n_max_qubits)
         opt_params, opt_e = run_vqe_optimization(terms, nq, rng_seed=200 + i)
         y_test[i, :nq] = opt_params
+        y_test[i, n_max_qubits: n_max_qubits + nq] = opt_params
         E_test[i] = opt_e
         meta_test.append({"molecule": name, "n_qubits": nq, "bond_length": r, "terms": terms})
 
     return {
-        "train": {"X": X_train, "y": y_train, "E": E_train, "meta": meta_train},
-        "val_interpolation": {"X": X_val, "y": y_val, "E": E_val, "meta": meta_val},
-        "test_ood": {"X": X_test, "y": y_test, "E": E_test, "meta": meta_test},
+        "train": {"X": X_train, "y": y_train, "mask": mask_train, "E": E_train, "meta": meta_train},
+        "val_interpolation": {"X": X_val, "y": y_val, "mask": mask_val, "E": E_val, "meta": meta_val},
+        "test_ood": {"X": X_test, "y": y_test, "mask": mask_test, "E": E_test, "meta": meta_test},
     }
 

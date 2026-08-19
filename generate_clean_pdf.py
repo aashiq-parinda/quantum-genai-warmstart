@@ -216,8 +216,10 @@ def format_latex_math(text: str) -> str:
 
 
 def format_inline_markdown(text: str) -> str:
-    """Convert inline markdown formatting (**bold**, *italic*, `code`, links, latex) to clean HTML."""
+    """Convert inline markdown formatting (**bold**, *italic*, `code`, links, images, latex) to clean HTML."""
     text = format_latex_math(text)
+    # Images ![alt](url)
+    text = re.sub(r'!\[(.*?)\]\((.*?)\)', r'<div style="text-align:center; margin:12px 0;"><img src="\2" alt="\1" style="max-width:95%; border-radius:6px; border:1px solid #cbd5e1;"/><br/><span style="font-size:8.5pt; color:#64748b; font-style:italic;">\1</span></div>', text)
     # Links [text](url)
     text = re.sub(r'\[(.*?)\]\((.*?)\)', r'<a href="\2">\1</a>', text)
     # Bold **text**

@@ -423,5 +423,158 @@ def run_barren_plateau_diagnostic(
     }
 
 
+def evaluate_joint_vqe_single_system(
+    model: ParameterTransformer,
+    pauli_terms: List[Tuple[str, float]],
+    n_qubits: int,
+    molecule_name: str = None,
+    n_seeds: int = 10,
+    threshold: float = 0.5,
+    max_terms: int = 64,
+    n_max_qubits: int = 8,
+    n_iters: int = 150,
+) -> Dict[str, Any]:
+    """Compare Joint Predicted Circuit (Architecture + Warmstart) vs Fixed Linear HEA Baseline.
+
+    Evaluates across multiple seeds:
+      1. Baseline: Fixed 1-layer Linear HEA (CNOT chain, N-1 gates, depth 3)
+      2. Joint Model: Predicted sparse entangling pairs + warm-start parameters
+    """
+    from qwarmstart.models.baseline_vqe import run_vqe_from_init
+
+    # 1. Model prediction for architecture and parameters
+    h_vec = hamiltonian_to_flat_vector(pauli_terms, n_max_qubits, max_terms)
+    circuit_pred = model.predict_circuit(h_vec, n_qubits, threshold=threshold)
+    pred_pairs = circuit_pred["selected_pairs"]
+    pred_params = circuit_pred["params"][:2 * n_qubits]
+
+    # Fixed HEA configuration
+    fixed_pairs = [(i, i + 1) for i in range(n_qubits - 1)]
+    fixed_cx_count = len(fixed_pairs)
+    joint_cx_count = len(pred_pairs)
+
+    cx_reduction_pct = (1.0 - (joint_cx_count / max(fixed_cx_count, 1))) * 100.0
+    fixed_depth = 3
+    joint_depth = 3 if joint_cx_count > 0 else 1
+
+    base_energies = []
+    base_iters = []
+    joint_energies = []
+    joint_iters = []
+
+    for seed in range(n_seeds):
+        rng = np.random.default_rng(seed)
+
+        # 1. Fixed HEA baseline run from random parameters
+        rand_p = rng.uniform(0, 2 * np.pi, 2 * n_qubits)
+        base_run = run_vqe_from_init(pauli_terms, n_qubits, rand_p, entangling_pairs=fixed_pairs, n_iters=n_iters)
+        base_energies.append(base_run["energy"])
+        base_iters.append(base_run["converged_at"])
+
+        # 2. Joint model run from predicted architecture and warm-start parameters
+        warm_noise = rng.normal(0, 0.01, size=2 * n_qubits) if seed > 0 else np.zeros(2 * n_qubits)
+        joint_run = run_vqe_from_init(pauli_terms, n_qubits, pred_params + warm_noise, entangling_pairs=pred_pairs, n_iters=n_iters)
+        joint_energies.append(joint_run["energy"])
+        joint_iters.append(joint_run["converged_at"])
+
+    base_energies = np.array(base_energies, dtype=np.float64)
+    joint_energies = np.array(joint_energies, dtype=np.float64)
+    base_iters = np.array(base_iters, dtype=np.float64)
+    joint_iters = np.array(joint_iters, dtype=np.float64)
+
+    mean_base_e = float(np.mean(base_energies))
+    mean_joint_e = float(np.mean(joint_energies))
+    delta_e_ha = mean_joint_e - mean_base_e
+    delta_e_mha = delta_e_ha * 1000.0
+    energy_error_mha = max(0.0, delta_e_mha)
+
+    mean_base_iter = float(np.mean(base_iters))
+    mean_joint_iter = float(np.mean(joint_iters))
+    iter_reduction_pct = (1.0 - (mean_joint_iter / max(mean_base_iter, 1.0))) * 100.0
+
+    # Paired t-tests
+    _, p_val_energy = stats.ttest_rel(joint_energies, base_energies) if not np.allclose(joint_energies, base_energies) else (0, 1.0)
+    _, p_val_iter = stats.ttest_rel(joint_iters, base_iters) if not np.allclose(joint_iters, base_iters) else (0, 1.0)
+
+    # Pareto classification:
+    # Target accuracy is met if joint energy is less than or within 5 mHa of baseline:
+    within_target_acc = (mean_joint_e <= mean_base_e + 0.005)
+    fewer_cx = (joint_cx_count < fixed_cx_count)
+    strictly_better = fewer_cx and within_target_acc and (mean_joint_iter <= mean_base_iter)
+    pareto_tradeoff = fewer_cx and within_target_acc
+
+    return {
+        "molecule": molecule_name,
+        "n_qubits": n_qubits,
+        "fixed_cx_count": fixed_cx_count,
+        "joint_cx_count": joint_cx_count,
+        "cx_reduction_pct": cx_reduction_pct,
+        "fixed_depth": fixed_depth,
+        "joint_depth": joint_depth,
+        "pred_pairs": pred_pairs,
+        "fixed_pairs": fixed_pairs,
+        "energy_mean_fixed": mean_base_e,
+        "energy_std_fixed": float(np.std(base_energies)),
+        "energy_mean_joint": mean_joint_e,
+        "energy_std_joint": float(np.std(joint_energies)),
+        "delta_e_ha": delta_e_ha,
+        "delta_e_mha": delta_e_mha,
+        "iter_mean_fixed": mean_base_iter,
+        "iter_std_fixed": float(np.std(base_iters)),
+        "iter_mean_joint": mean_joint_iter,
+        "iter_std_joint": float(np.std(joint_iters)),
+        "iter_reduction_pct": iter_reduction_pct,
+        "p_val_energy": float(p_val_energy),
+        "p_val_iter": float(p_val_iter),
+        "within_target_accuracy": within_target_acc,
+        "strictly_better": strictly_better,
+        "pareto_tradeoff": pareto_tradeoff,
+    }
+
+
+def evaluate_joint_benchmark_suite(
+    model: ParameterTransformer,
+    dataset_split: List[Dict[str, Any]],
+    n_seeds: int = 10,
+    threshold: float = 0.5,
+    max_terms: int = 64,
+    n_max_qubits: int = 8,
+    n_iters: int = 150,
+) -> Dict[str, Any]:
+    """Run full Phase 4 Joint Architecture + Parameter Search benchmark suite."""
+    results = []
+    for meta in dataset_split:
+        res = evaluate_joint_vqe_single_system(
+            model,
+            meta["terms"],
+            meta["n_qubits"],
+            molecule_name=meta.get("molecule", None),
+            n_seeds=n_seeds,
+            threshold=threshold,
+            max_terms=max_terms,
+            n_max_qubits=n_max_qubits,
+            n_iters=n_iters,
+        )
+        res["bond_length"] = meta.get("bond_length", None)
+        results.append(res)
+
+    avg_cx_reduction = float(np.mean([r["cx_reduction_pct"] for r in results]))
+    avg_delta_e_mha = float(np.mean([r["delta_e_mha"] for r in results]))
+    avg_iter_reduction = float(np.mean([r["iter_reduction_pct"] for r in results]))
+    pct_within_acc = float(np.mean([1.0 if r["within_target_accuracy"] else 0.0 for r in results])) * 100.0
+    pct_pareto = float(np.mean([1.0 if r["pareto_tradeoff"] else 0.0 for r in results])) * 100.0
+
+    return {
+        "n_samples": len(results),
+        "n_seeds": n_seeds,
+        "avg_cx_reduction_pct": avg_cx_reduction,
+        "avg_delta_e_mha": avg_delta_e_mha,
+        "avg_iter_reduction_pct": avg_iter_reduction,
+        "pct_within_target_accuracy": pct_within_acc,
+        "pct_pareto_supported": pct_pareto,
+        "results": results,
+    }
+
+
 
 
