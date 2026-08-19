@@ -3,7 +3,7 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Tests: 26/26 Passed](https://img.shields.io/badge/tests-26%2F26%20passing-brightgreen)](#-testing)
-[![DOI: 10.5281/zenodo.22013110](https://zenodo.org/badge/DOI/10.5281/zenodo.22013110.svg)](https://doi.org/10.5281/zenodo.22013110)
+[![DOI: 10.5281/zenodo.22013110](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.22013110-blue.svg)](https://doi.org/10.5281/zenodo.22013110)
 
 This repository contains an expanded, empirical generalization and architecture-search study at the intersection of **Generative AI and Quantum Computing**:
 
