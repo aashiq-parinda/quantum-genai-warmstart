@@ -4,6 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Tests: 26/26 Passed](https://img.shields.io/badge/tests-26%2F26%20passing-brightgreen)](#-quickstart)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Interactive%20Visualizer-00f2fe?style=flat&logo=vercel)](https://quantum-genai-warmstart-22ts.vercel.app/)
+[![YouTube Demo](https://img.shields.io/badge/YouTube-Video%20Demo-red?style=flat&logo=youtube)](https://youtu.be/aLI1ZE7dl0g)
 [![Zenodo Version 7](https://img.shields.io/badge/Zenodo-Version%207-blue.svg)](https://zenodo.org/records/23235828)
 [![DOI: 10.5281/zenodo.22013110](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.22013110-blue.svg)](https://doi.org/10.5281/zenodo.22013110)
 
@@ -11,13 +12,23 @@ Official open-source repository and research artifacts for the peer-reviewed pre
 
 > **Ashraf Khan (2026).** *Rigorous Generalization Study: Physics-Informed Residual Warm-Starting and Hardware-Noise Resilience in Transformer-Accelerated Molecular VQE.*  
 > **Live Interactive Web App**: [quantum-genai-warmstart-22ts.vercel.app](https://quantum-genai-warmstart-22ts.vercel.app/)  
+> **Video Walkthrough**: [Watch on YouTube](https://youtu.be/aLI1ZE7dl0g)  
 > **Preprint**: [Zenodo Record #23235828](https://zenodo.org/records/23235828) | **Concept DOI**: [10.5281/zenodo.22013110](https://doi.org/10.5281/zenodo.22013110) | **Preprint Draft**: [`docs/PREPRINT_DRAFT.md`](docs/PREPRINT_DRAFT.md)
 
 ---
 
-## 🌐 Interactive Web Visualizer & Local Lab
+## 🌐 Interactive Web Visualizer & Video Walkthrough
 
 Explore the science, run real-time molecular simulations, and test quantum noise resilience in your browser:
+
+<p align="center">
+  <a href="https://youtu.be/aLI1ZE7dl0g" target="_blank">
+    <img src="https://img.youtube.com/vi/aLI1ZE7dl0g/maxresdefault.jpg" alt="Interactive Demo & Video Walkthrough" width="90%" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);" />
+  </a>
+</p>
+<p align="center">
+  ▶️ <em><a href="https://youtu.be/aLI1ZE7dl0g" target="_blank">Click here to watch the full walkthrough & visualizer demo on YouTube</a></em>
+</p>
 
 👉 **[Launch Live Web Application (Free on Vercel)](https://quantum-genai-warmstart-22ts.vercel.app/)**
 
