@@ -3,12 +3,14 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Tests: 26/26 Passed](https://img.shields.io/badge/tests-26%2F26%20passing-brightgreen)](#-quickstart)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Interactive%20Visualizer-00f2fe?style=flat&logo=vercel)](https://quantum-genai-warmstart-22ts.vercel.app/)
 [![Zenodo Version 5](https://img.shields.io/badge/Zenodo-Version%205-blue.svg)](https://zenodo.org/records/22013110)
 [![DOI: 10.5281/zenodo.22013110](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.22013110-blue.svg)](https://doi.org/10.5281/zenodo.22013110)
 
 Official open-source repository and research artifacts for the peer-reviewed preprint:
 
 > **Ashraf Khan (2026).** *Rigorous Generalization Study: Transformer-Accelerated VQE Warm-Starting Across Multi-Molecule Families.*  
+> **Live Web App**: [quantum-genai-warmstart-22ts.vercel.app](https://quantum-genai-warmstart-22ts.vercel.app/)  
 > **Preprint**: [Zenodo Record #22013110 (Version 5)](https://zenodo.org/records/22013110) | **DOI**: [10.5281/zenodo.22013110](https://doi.org/10.5281/zenodo.22013110) | **Preprint Draft**: [`docs/PREPRINT_DRAFT.md`](docs/PREPRINT_DRAFT.md)
 
 ---
