@@ -1,0 +1,290 @@
+{
+  "part_a": {
+    "H2 (In-Dist)": {
+      "exact_energy": -1.6023800000000001,
+      "sparse_cx_gates": 1,
+      "dense_cx_gates": 3,
+      "random": {
+        "energy_mean": -1.5198284480575046,
+        "iter_mean": 250.0
+      },
+      "hartree_fock": {
+        "energy_mean": -0.36626000000000336,
+        "iter_mean": 7.0
+      },
+      "direct_ml": {
+        "energy_mean": -1.5895051222170793,
+        "iter_mean": 250.0
+      },
+      "residual_ml": {
+        "energy_mean": -1.5876713517131815,
+        "iter_mean": 250.0,
+        "iter_std": 0.0
+      },
+      "iter_reduction_vs_hf_pct": -3471.4285714285716,
+      "p_val_vs_hf": 0.0
+    },
+    "LiH (Interpolation)": {
+      "exact_energy": -8.373548497680382,
+      "sparse_cx_gates": 1,
+      "dense_cx_gates": 5,
+      "random": {
+        "energy_mean": -8.117851960568482,
+        "iter_mean": 250.0
+      },
+      "hartree_fock": {
+        "energy_mean": -7.5975500000000284,
+        "iter_mean": 7.0
+      },
+      "direct_ml": {
+        "energy_mean": -8.357946621255254,
+        "iter_mean": 250.0
+      },
+      "residual_ml": {
+        "energy_mean": -8.279533534781066,
+        "iter_mean": 250.0,
+        "iter_std": 0.0
+      },
+      "iter_reduction_vs_hf_pct": -3471.4285714285716,
+      "p_val_vs_hf": 0.0
+    },
+    "BeH2 (Zero-Shot OOD)": {
+      "exact_energy": -16.74187389119078,
+      "sparse_cx_gates": 1,
+      "dense_cx_gates": 5,
+      "random": {
+        "energy_mean": -16.628993947093996,
+        "iter_mean": 250.0
+      },
+      "hartree_fock": {
+        "energy_mean": -15.487100000000122,
+        "iter_mean": 7.0
+      },
+      "direct_ml": {
+        "energy_mean": -16.72034709171643,
+        "iter_mean": 220.0
+      },
+      "residual_ml": {
+        "energy_mean": -16.719482974898675,
+        "iter_mean": 250.0,
+        "iter_std": 0.0
+      },
+      "iter_reduction_vs_hf_pct": -3471.4285714285716,
+      "p_val_vs_hf": 0.0
+    },
+    "H4 chain (Zero-Shot OOD)": {
+      "exact_energy": -2.5475449092356404,
+      "sparse_cx_gates": 1,
+      "dense_cx_gates": 7,
+      "random": {
+        "energy_mean": -2.4124245856613733,
+        "iter_mean": 250.0
+      },
+      "hartree_fock": {
+        "energy_mean": -2.1725000000000163,
+        "iter_mean": 7.0
+      },
+      "direct_ml": {
+        "energy_mean": -2.4103341016517557,
+        "iter_mean": 120.0
+      },
+      "residual_ml": {
+        "energy_mean": -2.4153470991483723,
+        "iter_mean": 250.0,
+        "iter_std": 0.0
+      },
+      "iter_reduction_vs_hf_pct": -3471.4285714285716,
+      "p_val_vs_hf": 0.0
+    }
+  },
+  "part_b": {
+    "H2 (In-Dist)": {
+      "n_qubits": 4,
+      "sparse_cx": 1,
+      "dense_cx": 3,
+      "levels": [
+        {
+          "p2_error_rate": 0.0,
+          "sparse_fidelity": 1.0,
+          "dense_fidelity": 1.0000000000000002,
+          "fidelity_gain_pct": -2.2204460492503124e-14,
+          "sparse_energy_std": 0.03173370629772039,
+          "dense_energy_std": 0.031733706297720404,
+          "sparse_energy_mean": -0.6238701991196912,
+          "dense_energy_mean": -1.364945941067134
+        },
+        {
+          "p2_error_rate": 0.005,
+          "sparse_fidelity": 1.0,
+          "dense_fidelity": 1.0000000000000002,
+          "fidelity_gain_pct": -2.2204460492503124e-14,
+          "sparse_energy_std": 0.030481033284306583,
+          "dense_energy_std": 0.035293449955612156,
+          "sparse_energy_mean": -0.6248214467757718,
+          "dense_energy_mean": -1.3709689297370544
+        },
+        {
+          "p2_error_rate": 0.01,
+          "sparse_fidelity": 1.0,
+          "dense_fidelity": 1.0000000000000002,
+          "fidelity_gain_pct": -2.2204460492503124e-14,
+          "sparse_energy_std": 0.030481033284306583,
+          "dense_energy_std": 0.035293449955612156,
+          "sparse_energy_mean": -0.6248214467757718,
+          "dense_energy_mean": -1.3709689297370544
+        },
+        {
+          "p2_error_rate": 0.02,
+          "sparse_fidelity": 0.9853915736112673,
+          "dense_fidelity": 1.0000000000000002,
+          "fidelity_gain_pct": -1.4608426388732938,
+          "sparse_energy_std": 0.02738831026380699,
+          "dense_energy_std": 0.035293449955612156,
+          "sparse_energy_mean": -0.6251501759564487,
+          "dense_energy_mean": -1.3709689297370544
+        }
+      ]
+    },
+    "LiH (Interpolation)": {
+      "n_qubits": 6,
+      "sparse_cx": 1,
+      "dense_cx": 5,
+      "levels": [
+        {
+          "p2_error_rate": 0.0,
+          "sparse_fidelity": 1.0000000000000002,
+          "dense_fidelity": 1.0000000000000002,
+          "fidelity_gain_pct": 0.0,
+          "sparse_energy_std": 0.0349737236703512,
+          "dense_energy_std": 0.0349737236703512,
+          "sparse_energy_mean": -7.324521702915072,
+          "dense_energy_mean": -7.4862138564636975
+        },
+        {
+          "p2_error_rate": 0.005,
+          "sparse_fidelity": 1.0000000000000002,
+          "dense_fidelity": 1.0000000000000002,
+          "fidelity_gain_pct": 0.0,
+          "sparse_energy_std": 0.03931366925349025,
+          "dense_energy_std": 0.03055910010139179,
+          "sparse_energy_mean": -7.322122863060919,
+          "dense_energy_mean": -7.475874862138196
+        },
+        {
+          "p2_error_rate": 0.01,
+          "sparse_fidelity": 1.0000000000000002,
+          "dense_fidelity": 0.9724994312063694,
+          "fidelity_gain_pct": 2.8278236378520893,
+          "sparse_energy_std": 0.03931366925349025,
+          "dense_energy_std": 0.07398621320711558,
+          "sparse_energy_mean": -7.322122863060919,
+          "dense_energy_mean": -7.476373744420316
+        },
+        {
+          "p2_error_rate": 0.02,
+          "sparse_fidelity": 1.0000000000000002,
+          "dense_fidelity": 0.9294170110861626,
+          "fidelity_gain_pct": 7.594329356135936,
+          "sparse_energy_std": 0.03931366925349025,
+          "dense_energy_std": 0.08064892456121378,
+          "sparse_energy_mean": -7.322122863060919,
+          "dense_energy_mean": -7.487422794658123
+        }
+      ]
+    },
+    "BeH2 (Zero-Shot OOD)": {
+      "n_qubits": 6,
+      "sparse_cx": 1,
+      "dense_cx": 5,
+      "levels": [
+        {
+          "p2_error_rate": 0.0,
+          "sparse_fidelity": 1.0000000000000002,
+          "dense_fidelity": 1.0000000000000009,
+          "fidelity_gain_pct": -6.661338147750933e-14,
+          "sparse_energy_std": 0.03629394828043896,
+          "dense_energy_std": 0.03629394828043881,
+          "sparse_energy_mean": -15.970355143774546,
+          "dense_energy_mean": -15.557781598763476
+        },
+        {
+          "p2_error_rate": 0.005,
+          "sparse_fidelity": 1.0000000000000002,
+          "dense_fidelity": 1.0000000000000009,
+          "fidelity_gain_pct": -6.661338147750933e-14,
+          "sparse_energy_std": 0.04079772265742645,
+          "dense_energy_std": 0.03171267689510875,
+          "sparse_energy_mean": -15.96786575001081,
+          "dense_energy_mean": -15.547052317293241
+        },
+        {
+          "p2_error_rate": 0.01,
+          "sparse_fidelity": 1.0000000000000002,
+          "dense_fidelity": 0.97250058002956,
+          "fidelity_gain_pct": 2.827702166471138,
+          "sparse_energy_std": 0.04079772265742645,
+          "dense_energy_std": 0.05339304374341818,
+          "sparse_energy_mean": -15.96786575001081,
+          "dense_energy_mean": -15.559439409176889
+        },
+        {
+          "p2_error_rate": 0.02,
+          "sparse_fidelity": 1.0000000000000002,
+          "dense_fidelity": 0.9294456521280565,
+          "fidelity_gain_pct": 7.591013816719959,
+          "sparse_energy_std": 0.04079772265742645,
+          "dense_energy_std": 0.05908754834941213,
+          "sparse_energy_mean": -15.96786575001081,
+          "dense_energy_mean": -15.562963776264246
+        }
+      ]
+    },
+    "H4 chain (Zero-Shot OOD)": {
+      "n_qubits": 8,
+      "sparse_cx": 1,
+      "dense_cx": 7,
+      "levels": [
+        {
+          "p2_error_rate": 0.0,
+          "sparse_fidelity": 1.0,
+          "dense_fidelity": 0.9999999999999997,
+          "fidelity_gain_pct": 3.330669073875471e-14,
+          "sparse_energy_std": 0.03812763396070049,
+          "dense_energy_std": 0.03812763396070049,
+          "sparse_energy_mean": -1.9707323696987806,
+          "dense_energy_mean": -2.2584873281837217
+        },
+        {
+          "p2_error_rate": 0.005,
+          "sparse_fidelity": 1.0,
+          "dense_fidelity": 0.9599146819018057,
+          "fidelity_gain_pct": 4.175925095632071,
+          "sparse_energy_std": 0.0349456679202675,
+          "dense_energy_std": 0.04679312490588654,
+          "sparse_energy_mean": -1.958651219705121,
+          "dense_energy_mean": -2.261518857998583
+        },
+        {
+          "p2_error_rate": 0.01,
+          "sparse_fidelity": 0.98,
+          "dense_fidelity": 0.88366574769038,
+          "fidelity_gain_pct": 10.901661919272867,
+          "sparse_energy_std": 0.04162534257798711,
+          "dense_energy_std": 0.04886345206804285,
+          "sparse_energy_mean": -1.9615615801395732,
+          "dense_energy_mean": -2.243413006370174
+        },
+        {
+          "p2_error_rate": 0.02,
+          "sparse_fidelity": 0.98,
+          "dense_fidelity": 0.872740311939266,
+          "fidelity_gain_pct": 12.289988968470857,
+          "sparse_energy_std": 0.04162534257798711,
+          "dense_energy_std": 0.06681351614736925,
+          "sparse_energy_mean": -1.9615615801395732,
+          "dense_energy_mean": -2.245054001804771
+        }
+      ]
+    }
+  }
+}

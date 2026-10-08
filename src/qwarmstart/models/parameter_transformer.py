@@ -183,30 +183,72 @@ class ParameterTransformer:
 
         return mask_probs, params
 
+    def forward_residual(
+        self,
+        token_matrix: np.ndarray,
+        hf_params: np.ndarray,
+        max_residual: float = np.pi / 4,
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Physics-informed forward pass predicting architecture mask and residual parameters.
+
+        theta_init = hf_params + delta_theta
+        where delta_theta = tanh(param_logits) * max_residual
+
+        Parameters
+        ----------
+        token_matrix : np.ndarray shape (seq_len, d_token)
+        hf_params : np.ndarray — baseline Hartree-Fock parameters
+        max_residual : float — maximum angular deviation from HF (default pi/4)
+
+        Returns
+        -------
+        mask_probs : np.ndarray shape (n_candidate_pairs,) in range [0, 1]
+        theta_init : np.ndarray shape (n_params,) — warm-start parameters
+        delta_theta : np.ndarray shape (n_params,) — residual perturbation around HF
+        """
+        mask_probs, raw_params = self.forward_joint(token_matrix)
+        delta_theta = np.tanh(raw_params) * max_residual
+
+        n_p = min(len(hf_params), len(raw_params))
+        theta_init = np.zeros_like(raw_params)
+        theta_init[:n_p] = hf_params[:n_p] + delta_theta[:n_p]
+        if len(raw_params) > n_p:
+            theta_init[n_p:] = delta_theta[n_p:]
+
+        return mask_probs, theta_init, delta_theta
+
     def predict_circuit(
         self,
         token_matrix: np.ndarray,
         n_qubits: int,
         threshold: float = 0.5,
+        hf_params: np.ndarray = None,
+        max_residual: float = np.pi / 4,
     ) -> Dict[str, Any]:
         """Predict sparse entangling pairs and initial parameter values for a specific molecule.
+
+        Supports both direct parameter prediction and physics-informed residual prediction
+        relative to a Hartree-Fock baseline.
 
         Parameters
         ----------
         token_matrix : np.ndarray
         n_qubits : int
         threshold : float — probability cutoff for retaining 2-qubit CNOT gate
+        hf_params : np.ndarray, optional — if provided, enables residual warm-start
+        max_residual : float — maximum angular deviation when using residual mode
 
         Returns
         -------
         dict with:
           - 'mask_probs': array of pair probabilities
           - 'selected_pairs': list of (i, j) qubit pairs with prob >= threshold within n_qubits
-          - 'params': parameter array
+          - 'params': parameter array (either absolute or HF + residual)
+          - 'delta_theta': residual perturbation (or None if not in residual mode)
           - 'n_cx_gates': count of predicted 2-qubit gates
           - 'n_qubits': int
         """
-        mask_probs, params = self.forward_joint(token_matrix)
+        mask_probs, raw_params = self.forward_joint(token_matrix)
         selected_pairs = []
         for idx, (i, j) in enumerate(self.candidate_pairs):
             if i < n_qubits and j < n_qubits and mask_probs[idx] >= threshold:
@@ -223,10 +265,22 @@ class ParameterTransformer:
                 best_idx = max(valid_indices, key=lambda idx: mask_probs[idx])
                 selected_pairs.append(self.candidate_pairs[best_idx])
 
+        delta_theta = None
+        if hf_params is not None:
+            delta_theta = np.tanh(raw_params) * max_residual
+            n_p = min(len(hf_params), len(raw_params))
+            params = np.zeros_like(raw_params)
+            params[:n_p] = hf_params[:n_p] + delta_theta[:n_p]
+            if len(raw_params) > n_p:
+                params[n_p:] = delta_theta[n_p:]
+        else:
+            params = raw_params
+
         return {
             "mask_probs": mask_probs,
             "selected_pairs": selected_pairs,
             "params": params,
+            "delta_theta": delta_theta,
             "n_cx_gates": len(selected_pairs),
             "n_qubits": n_qubits,
         }
