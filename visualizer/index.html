@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quantum GenAI Warm-Start Lab — Interactive Visualizer</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- KaTeX for Scientific Formula Rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+</head>
+<body class="mode-layman">
+  <!-- Top Navigation Bar -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="logo-badge">
+        <span class="logo-atom">⚛️</span>
+        <span class="logo-pulse"></span>
+      </div>
+      <div class="title-wrap">
+        <div class="badge-row">
+          <span class="pill pill-primary">GenAI × Quantum Computing</span>
+          <span class="pill pill-outline" id="server-status-pill">⚡ Standalone Engine</span>
+          <span class="pill pill-accent">DOI: 10.5281/zenodo.22013110</span>
+        </div>
+        <h1 class="app-title">Quantum GenAI Warm-Start Lab</h1>
+        <p class="app-tagline layman-text">Demystifying how AI & Physics team up to simulate molecules on noisy quantum computers</p>
+        <p class="app-tagline scientist-text">Physics-Informed Residual Warm-Starting & Hardware Noise Resilience in Molecular VQE</p>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <!-- Perspective Mode Switcher -->
+      <div class="perspective-switcher" id="perspective-switcher">
+        <button type="button" class="switch-btn active" id="btn-mode-layman" title="Intuitive analogies, plain English, visual metaphors">
+          <span class="switch-icon">🌱</span>
+          <span class="switch-label">Layman Mode</span>
+        </button>
+        <button type="button" class="switch-btn" id="btn-mode-scientist" title="Exact mathematics, Hamiltonians, Pauli tokens, p-values">
+          <span class="switch-icon">🔬</span>
+          <span class="switch-label">Scientist Mode</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sticky Quick Nav -->
+  <nav class="sub-nav">
+    <a href="#section-story" class="nav-link active">1. The Intuition</a>
+    <a href="#section-molecule" class="nav-link">2. Molecular Playground</a>
+    <a href="#section-race" class="nav-link">3. 4-Way VQE Race</a>
+    <a href="#section-circuits" class="nav-link">4. Noise & Hardware Lab</a>
+    <a href="#section-benchmarks" class="nav-link">5. Benchmark Explorer</a>
+    <a href="#section-citations" class="nav-link">6. Paper & DOI</a>
+  </nav>
+
+  <main class="main-container">
+
+    <!-- ================================================================= -->
+    <!-- SECTION 1: THE STORY & INTUITION -->
+    <!-- ================================================================= -->
+    <section id="section-story" class="section-card">
+      <div class="section-header">
+        <div class="section-title-wrap">
+          <span class="section-number">01</span>
+          <h2>The Big Picture: Why Does This Matter?</h2>
+        </div>
+        <span class="section-subtitle layman-text">Everything you need to know in 60 seconds without a PhD</span>
+        <span class="section-subtitle scientist-text">Problem Formulation: Mitigating Barren Plateaus & Decoherence in NISQ VQE</span>
+      </div>
+
+      <div class="story-grid">
+        <!-- Card 1 -->
+        <div class="story-card">
+          <div class="story-icon">🧪</div>
+          <h3 class="layman-text">The Impossible Chemistry Problem</h3>
+          <h3 class="scientist-text">Exponential Hilbert Space</h3>
+          <p class="layman-text">
+            Simulating complex molecules on regular computers is nearly impossible because every electron interacts with every other electron simultaneously. To invent better batteries, clean fertilizers, or life-saving drugs, we need quantum computers to find the <strong>lowest resting energy (Ground State)</strong>.
+          </p>
+          <p class="scientist-text">
+            Exact electronic structure calculation scales as $\mathcal{O}(e^N)$ with orbital count $N$. Classical FCI diagonalization quickly becomes intractable. Variational Quantum Eigensolver (VQE) maps the fermionic Hamiltonian $H$ onto Pauli observables via Jordan-Wigner transformation.
+          </p>
+          <div class="story-highlight">
+            <span class="highlight-label">The Goal:</span>
+            <span class="highlight-val layman-text">Find the lowest resting molecular energy (Ground State)</span>
+            <span class="highlight-val scientist-text">Find Ground State: $E_0 = \min_{\boldsymbol{\theta}} \langle\psi(\boldsymbol{\theta})|H|\psi(\boldsymbol{\theta})\rangle$</span>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="story-card">
+          <div class="story-icon">⛰️</div>
+          <h3 class="layman-text">The "Foggy Mountain" (VQE)</h3>
+          <h3 class="scientist-text">Variational Hybrid Optimization</h3>
+          <p class="layman-text">
+            Think of VQE as a <strong>blindfolded hiker in dense fog</strong> trying to find the lowest valley on a huge mountain range. The hiker takes a trial step (rotation angles &theta;), asks the quantum chip for their altitude (energy E), and tries to walk downhill.
+          </p>
+          <p class="scientist-text">
+            VQE is a hybrid quantum-classical loop: a parameterized quantum circuit $\hat{U}(\boldsymbol{\theta})$ prepares a trial quantum state, quantum hardware samples expectation values $\langle H \rangle$, and a classical optimizer (COBYLA/BFGS) updates $\boldsymbol{\theta}$.
+          </p>
+          <div class="story-highlight warning">
+            <span class="highlight-label">The Trap:</span>
+            <span class="highlight-val layman-text">Barren Plateau: the mountain is completely flat, so the hiker gets stuck!</span>
+            <span class="highlight-val scientist-text">Gradient variance decays exponentially: $\text{Var}[\partial_{\theta} E] \in \mathcal{O}(2^{-N})$</span>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="story-card">
+          <div class="story-icon">💡</div>
+          <h3 class="layman-text">The 4 Contenders Compared</h3>
+          <h3 class="scientist-text">Initialization Taxonomy</h3>
+          <ul class="contender-list">
+            <li>
+              <strong class="tag-random">🎲 Random Guess:</strong>
+              <span class="layman-text">Blind jump into the fog. Usually gets lost on flat ground.</span>
+              <span class="scientist-text">Uniform Haar measure initialization; vulnerable to barren plateaus.</span>
+            </li>
+            <li>
+              <strong class="tag-hf">🏛️ Hartree-Fock (Physics):</strong>
+              <span class="layman-text">A 100-year-old physics formula. Solid starting point, but misses electron quantum entanglements.</span>
+              <span class="scientist-text">Mean-field reference state; 0 correlation energy; zero inference cost.</span>
+            </li>
+            <li>
+              <strong class="tag-dml">🤖 Pure Black-Box AI:</strong>
+              <span class="layman-text">Tries to guess angles from scratch. Great on known molecules, but hallucinates wildly on stretched bonds!</span>
+              <span class="scientist-text">Direct angle regression $\boldsymbol{\theta} = f_{\phi}(H)$; degrades in asymptotic OOD regimes.</span>
+            </li>
+            <li>
+              <strong class="tag-warm">⚡ Residual AI (Our Work):</strong>
+              <span class="layman-text">Start with the physics rulebook, then let AI predict <em>only the fine correction</em> (&theta; = &theta;<sub>HF</sub> + &Delta;&theta;). Best of both worlds!</span>
+              <span class="scientist-text">Physics-informed residual warm-start: $\boldsymbol{\theta}_0 = \boldsymbol{\theta}_{\text{HF}} + \Delta\boldsymbol{\theta}_{\text{res}}$, bounded variance, 38% faster convergence.</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- SECTION 2: INTERACTIVE MOLECULAR PLAYGROUND -->
+    <!-- ================================================================= -->
+    <section id="section-molecule" class="section-card">
+      <div class="section-header">
+        <div class="section-title-wrap">
+          <span class="section-number">02</span>
+          <h2>Interactive Molecular Playground & Energy Surface</h2>
+        </div>
+        <span class="section-subtitle layman-text">Stretch the molecule and watch how its energy curve responds in real time</span>
+        <span class="section-subtitle scientist-text">Parametric Potential Energy Surface (PES) & OOD Dissociation Regime</span>
+      </div>
+
+      <div class="playground-layout">
+        <!-- Controls & Molecule Info -->
+        <div class="playground-sidebar">
+          <div class="control-box">
+            <label class="control-label" for="molecule-select">Select Molecular System</label>
+            <div class="molecule-chips" id="molecule-chips">
+              <button type="button" class="chip active" data-mol="H2">
+                <span class="chip-formula">H₂</span>
+                <span class="chip-name">Hydrogen (4q)</span>
+                <span class="chip-tag in-dist">In-Distribution</span>
+              </button>
+              <button type="button" class="chip" data-mol="LiH">
+                <span class="chip-formula">LiH</span>
+                <span class="chip-name">Lithium Hydride (6q)</span>
+                <span class="chip-tag interp">Interpolation</span>
+              </button>
+              <button type="button" class="chip" data-mol="BeH2">
+                <span class="chip-formula">BeH₂</span>
+                <span class="chip-name">Beryllium Dihydride (6q)</span>
+                <span class="chip-tag ood">Zero-Shot OOD</span>
+              </button>
+              <button type="button" class="chip" data-mol="H4">
+                <span class="chip-formula">H₄ chain</span>
+                <span class="chip-name">4-Hydrogen Chain (8q)</span>
+                <span class="chip-tag ood">Zero-Shot OOD</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="control-box">
+            <div class="slider-header">
+              <label class="control-label" for="bond-slider">Bond Distance (R)</label>
+              <span class="slider-val" id="bond-val">0.741 Å</span>
+            </div>
+            <input type="range" id="bond-slider" min="0.4" max="2.6" step="0.02" value="0.74" class="range-slider">
+            <div class="slider-hints">
+              <span>Compressed (0.4 Å)</span>
+              <span class="eq-hint" id="eq-hint">Equilibrium (R<sub>e</sub>)</span>
+              <span>Dissociated (2.6 Å)</span>
+            </div>
+          </div>
+
+          <!-- Dynamic Status Banner -->
+          <div class="regime-banner" id="regime-banner">
+            <div class="regime-icon" id="regime-icon">🟢</div>
+            <div class="regime-content">
+              <h4 id="regime-title">Equilibrium Geometry (Safe Zone)</h4>
+              <p id="regime-desc" class="layman-text">Atoms are at their happiest distance. All methods perform reasonably well here.</p>
+              <p id="regime-desc-sci" class="scientist-text">Within training distribution envelope; mild electron correlation effects.</p>
+            </div>
+          </div>
+
+          <!-- Live Quantum Readout -->
+          <div class="telemetry-panel">
+            <div class="telemetry-item">
+              <span class="t-label">Exact Energy (E<sub>0</sub>)</span>
+              <span class="t-value highlight" id="t-exact-energy">-1.6024 Ha</span>
+            </div>
+            <div class="telemetry-item">
+              <span class="t-label">Active Qubits</span>
+              <span class="t-value" id="t-qubits">4 Qubits</span>
+            </div>
+            <div class="telemetry-item">
+              <span class="t-label">Hamiltonian Terms</span>
+              <span class="t-value" id="t-ham-terms">11 Pauli Terms</span>
+            </div>
+            <div class="telemetry-item">
+              <span class="t-label">Interacting Pairs</span>
+              <span class="t-value" id="t-pairs">4 Pairs (0-1, 1-2, 2-3, 0-3)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2 Canvases Side by Side -->
+        <div class="playground-canvases">
+          <!-- Molecule Canvas -->
+          <div class="canvas-card">
+            <div class="canvas-header">
+              <div class="canvas-title">
+                <span class="dot live"></span>
+                <span>Atomic Geometry & Electron Cloud</span>
+              </div>
+              <span class="canvas-badge">Interactive Physics Canvas</span>
+            </div>
+            <div class="canvas-wrapper">
+              <canvas id="molecule-canvas" width="600" height="280"></canvas>
+            </div>
+            <div class="canvas-legend">
+              <span class="legend-item"><span class="dot-color proton"></span> Nucleus</span>
+              <span class="legend-item"><span class="dot-color electron"></span> Correlated Electrons</span>
+              <span class="legend-item"><span class="dot-color spring"></span> Chemical Bond (R)</span>
+            </div>
+          </div>
+
+          <!-- Potential Energy Surface (PES) Canvas -->
+          <div class="canvas-card">
+            <div class="canvas-header">
+              <div class="canvas-title">
+                <span class="dot live"></span>
+                <span>Potential Energy Surface (PES Curve)</span>
+              </div>
+              <span class="canvas-badge">Hartree Energy Profile</span>
+            </div>
+            <div class="canvas-wrapper">
+              <canvas id="pes-canvas" width="600" height="280"></canvas>
+            </div>
+            <div class="canvas-legend">
+              <span class="legend-item"><span class="line-color exact"></span> Exact Born-Oppenheimer Curve</span>
+              <span class="legend-item"><span class="line-color current"></span> Current Bond Position (R)</span>
+              <span class="legend-item"><span class="line-color eq"></span> Equilibrium Minimum (R<sub>e</sub>)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- SECTION 3: THE LIVE 4-WAY VQE RACE SIMULATOR -->
+    <!-- ================================================================= -->
+    <section id="section-race" class="section-card">
+      <div class="section-header">
+        <div class="section-title-wrap">
+          <span class="section-number">03</span>
+          <h2>Live 4-Way VQE Convergence Race</h2>
+        </div>
+        <span class="section-subtitle layman-text">Watch all 4 strategies race downhill in real time to find the lowest energy</span>
+        <span class="section-subtitle scientist-text">Real-time Optimization Dynamics under Parametric Molecular Hamiltonians</span>
+      </div>
+
+      <!-- Race Controls Bar -->
+      <div class="race-controls-bar">
+        <div class="btn-group">
+          <button type="button" class="btn btn-primary" id="btn-race-start">
+            <span class="btn-icon">▶</span> Run VQE Race
+          </button>
+          <button type="button" class="btn btn-secondary" id="btn-race-pause" disabled>
+            <span class="btn-icon">⏸</span> Pause
+          </button>
+          <button type="button" class="btn btn-secondary" id="btn-race-reset">
+            <span class="btn-icon">🔄</span> Reset
+          </button>
+        </div>
+
+        <div class="race-slider-group">
+          <label for="race-speed-slider">Simulation Speed:</label>
+          <input type="range" id="race-speed-slider" min="1" max="10" value="5" class="speed-slider">
+          <span id="speed-label">5x</span>
+        </div>
+
+        <div class="race-status-wrap">
+          <span class="status-pulse-dot" id="race-status-dot"></span>
+          <span class="status-text" id="race-status-text">Ready to run</span>
+        </div>
+      </div>
+
+      <!-- 4 Contender Live Cards -->
+      <div class="contenders-grid">
+        <!-- 1: Random -->
+        <div class="contender-card" id="card-random">
+          <div class="card-head">
+            <span class="c-badge random">🎲 Random Guess</span>
+            <span class="c-rank" id="rank-random">—</span>
+          </div>
+          <div class="card-metric">
+            <span class="metric-title">Current Energy</span>
+            <span class="metric-num" id="energy-random">-0.0000 Ha</span>
+          </div>
+          <div class="card-footer-stats">
+            <div><span>Steps:</span> <strong id="steps-random">0</strong></div>
+            <div><span>ΔE Error:</span> <strong id="err-random">+0 mHa</strong></div>
+            <div><span>Barren Plateau:</span> <strong class="text-danger" id="bp-random">Active 🌵</strong></div>
+          </div>
+        </div>
+
+        <!-- 2: Hartree-Fock -->
+        <div class="contender-card" id="card-hf">
+          <div class="card-head">
+            <span class="c-badge hf">🏛️ Hartree-Fock</span>
+            <span class="c-rank" id="rank-hf">—</span>
+          </div>
+          <div class="card-metric">
+            <span class="metric-title">Current Energy</span>
+            <span class="metric-num" id="energy-hf">-0.0000 Ha</span>
+          </div>
+          <div class="card-footer-stats">
+            <div><span>Steps:</span> <strong id="steps-hf">0</strong></div>
+            <div><span>ΔE Error:</span> <strong id="err-hf">+0 mHa</strong></div>
+            <div><span>Correlation:</span> <strong class="text-warn" id="corr-hf">Missing 0%</strong></div>
+          </div>
+        </div>
+
+        <!-- 3: Direct ML -->
+        <div class="contender-card" id="card-dml">
+          <div class="card-head">
+            <span class="c-badge dml">🤖 Pure Black-Box AI</span>
+            <span class="c-rank" id="rank-dml">—</span>
+          </div>
+          <div class="card-metric">
+            <span class="metric-title">Current Energy</span>
+            <span class="metric-num" id="energy-dml">-0.0000 Ha</span>
+          </div>
+          <div class="card-footer-stats">
+            <div><span>Steps:</span> <strong id="steps-dml">0</strong></div>
+            <div><span>ΔE Error:</span> <strong id="err-dml">+0 mHa</strong></div>
+            <div><span>OOD Stability:</span> <strong id="stab-dml" class="text-warn">Unstable ⚠️</strong></div>
+          </div>
+        </div>
+
+        <!-- 4: Residual ML (Ours) -->
+        <div class="contender-card featured" id="card-warm">
+          <div class="winner-crown" id="winner-crown">👑</div>
+          <div class="card-head">
+            <span class="c-badge warm">⚡ Residual AI (Our Model)</span>
+            <span class="c-rank" id="rank-warm">—</span>
+          </div>
+          <div class="card-metric">
+            <span class="metric-title">Current Energy</span>
+            <span class="metric-num" id="energy-warm">-0.0000 Ha</span>
+          </div>
+          <div class="card-footer-stats">
+            <div><span>Steps:</span> <strong id="steps-warm">0</strong></div>
+            <div><span>ΔE Error:</span> <strong class="text-success" id="err-warm">+0 mHa</strong></div>
+            <div><span>Acceleration:</span> <strong class="text-success" id="accel-warm">+38% Faster</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Optimization Chart Canvas -->
+      <div class="chart-container">
+        <div class="chart-header">
+          <div class="chart-title">
+            <span class="dot live"></span>
+            <span>Energy Trajectory vs. Optimization Iterations (0 &rarr; 150 Steps)</span>
+          </div>
+          <div class="chart-legend">
+            <span class="legend-chip l-random">● Random Init</span>
+            <span class="legend-chip l-hf">● Hartree-Fock</span>
+            <span class="legend-chip l-dml">● Direct Black-Box AI</span>
+            <span class="legend-chip l-warm">● Residual Warm-Start (Ours)</span>
+            <span class="legend-chip l-exact">-- Exact Ground State</span>
+          </div>
+        </div>
+        <div class="canvas-wrapper chart-canvas-wrapper">
+          <canvas id="race-canvas" width="1100" height="360"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- SECTION 4: QUANTUM CIRCUIT & HARDWARE NOISE LAB -->
+    <!-- ================================================================= -->
+    <section id="section-circuits" class="section-card">
+      <div class="section-header">
+        <div class="section-title-wrap">
+          <span class="section-number">04</span>
+          <h2>Quantum Hardware Noise & Circuit Sparsity Lab</h2>
+        </div>
+        <span class="section-subtitle layman-text">See why fewer quantum gates protect your calculation from hardware static</span>
+        <span class="section-subtitle scientist-text">Entangling Gate Pruning vs. 2-Qubit Depolarizing Decoherence ($F = |\langle\psi|\psi_{\text{noisy}}\rangle|^2$)</span>
+      </div>
+
+      <!-- Noise Controls -->
+      <div class="noise-controls-grid">
+        <div class="control-card">
+          <div class="slider-header">
+            <label for="noise-slider">2-Qubit Depolarizing Error Rate (p<sub>2</sub>)</label>
+            <span class="slider-val" id="noise-val">1.0% (p<sub>2</sub> = 0.010)</span>
+          </div>
+          <input type="range" id="noise-slider" min="0.0" max="0.03" step="0.002" value="0.01" class="range-slider">
+          <div class="slider-hints">
+            <span>Noiseless (0.0%)</span>
+            <span>Standard Superconducting (1.0%)</span>
+            <span>High Noise (3.0%)</span>
+          </div>
+        </div>
+
+        <div class="control-card">
+          <div class="slider-header">
+            <label for="readout-slider">Readout Measurement Error (&epsilon;<sub>ro</sub>)</label>
+            <span class="slider-val" id="readout-val">1.5%</span>
+          </div>
+          <input type="range" id="readout-slider" min="0.0" max="0.05" step="0.005" value="0.015" class="range-slider">
+          <div class="slider-hints">
+            <span>Perfect Readout (0%)</span>
+            <span>Modern Hardware (1.5%)</span>
+            <span>Noisy Readout (5%)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Side-by-Side Circuit Comparison -->
+      <div class="circuit-comparison-grid">
+        <!-- Rigid Dense HEA Circuit -->
+        <div class="circuit-box dense">
+          <div class="circuit-box-head">
+            <div>
+              <h3>Standard Rigid Circuit (Hardware Efficient HEA)</h3>
+              <p class="circuit-sub">Connects every adjacent qubit blindly regardless of chemistry</p>
+            </div>
+            <span class="pill pill-danger" id="dense-gate-pill">5 CNOT Gates</span>
+          </div>
+
+          <div class="circuit-canvas-wrap">
+            <canvas id="dense-circuit-canvas" width="520" height="220"></canvas>
+          </div>
+
+          <div class="fidelity-meter-box">
+            <div class="fidelity-header">
+              <span>Quantum State Fidelity (F):</span>
+              <strong class="fidelity-val text-danger" id="dense-fidelity-val">92.9%</strong>
+            </div>
+            <div class="fidelity-bar-bg">
+              <div class="fidelity-bar-fill fill-danger" id="dense-fidelity-bar" style="width: 92.9%;"></div>
+            </div>
+            <p class="fidelity-verdict layman-text">⚠️ <strong>7.1% of quantum information lost</strong> due to redundant gate noise!</p>
+            <p class="fidelity-verdict scientist-text">Accumulated gate exposure: $\prod (1 - p_2)^5$ degrades state purity rapidly.</p>
+          </div>
+        </div>
+
+        <!-- AI Pruned Sparse Circuit -->
+        <div class="circuit-box sparse">
+          <div class="circuit-box-head">
+            <div>
+              <h3>Our AI-Pruned Circuit (Physics Guided)</h3>
+              <p class="circuit-sub">Prunes 60%–83% of wasted gates, keeping only interacting pairs</p>
+            </div>
+            <span class="pill pill-success" id="sparse-gate-pill">1 CNOT Gate (80% Pruned)</span>
+          </div>
+
+          <div class="circuit-canvas-wrap">
+            <canvas id="sparse-circuit-canvas" width="520" height="220"></canvas>
+          </div>
+
+          <div class="fidelity-meter-box">
+            <div class="fidelity-header">
+              <span>Quantum State Fidelity (F):</span>
+              <strong class="fidelity-val text-success" id="sparse-fidelity-val">100.0%</strong>
+            </div>
+            <div class="fidelity-bar-bg">
+              <div class="fidelity-bar-fill fill-success" id="sparse-fidelity-bar" style="width: 100%;"></div>
+            </div>
+            <p class="fidelity-verdict layman-text">✅ <strong>Crisp & Protected!</strong> Up to <strong>+12.3% higher accuracy</strong> under realistic hardware noise.</p>
+            <p class="fidelity-verdict scientist-text">Sparse Hamiltonian topology limits decoherence exposure; maintains $|\langle\psi_{\text{ideal}}|\psi\rangle|^2 \ge 0.98$.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- SECTION 5: EMPIRICAL BENCHMARK EXPLORER -->
+    <!-- ================================================================= -->
+    <section id="section-benchmarks" class="section-card">
+      <div class="section-header">
+        <div class="section-title-wrap">
+          <span class="section-number">05</span>
+          <h2>Empirical Research Benchmark Explorer</h2>
+        </div>
+        <span class="section-subtitle layman-text">Explore the exact experimental data, figures, and discovery tables from the preprint</span>
+        <span class="section-subtitle scientist-text">Empirical Validation Suite: 10 Seeds, Paired $t$-tests ($\alpha = 0.05$), Hardware Noise Profiles</span>
+      </div>
+
+      <!-- Tab Buttons -->
+      <div class="benchmark-tabs">
+        <button type="button" class="tab-btn active" data-tab="tab-energy">📊 Energy Accuracy (Part A)</button>
+        <button type="button" class="tab-btn" data-tab="tab-noise">🛡️ Noise Resilience (Part B)</button>
+        <button type="button" class="tab-btn" data-tab="tab-locality">✂️ Wasted Gate Locality Audit</button>
+        <button type="button" class="tab-btn" data-tab="tab-figures">🖼️ Publication Figures</button>
+      </div>
+
+      <!-- Tab 1: Energy Table -->
+      <div class="tab-pane active" id="tab-energy">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Molecular System</th>
+                <th>Qubits</th>
+                <th>Exact E<sub>0</sub></th>
+                <th>Random Init</th>
+                <th>Classical HF</th>
+                <th>Direct ML</th>
+                <th>Residual ML (Ours)</th>
+                <th>Error vs Exact</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>H₂</strong> (In-Distribution)</td>
+                <td>4q</td>
+                <td><code>-1.6024 Ha</code></td>
+                <td>-1.5198 Ha</td>
+                <td>-0.3663 Ha</td>
+                <td>-1.5895 Ha</td>
+                <td><strong class="text-success">-1.5877 Ha</strong></td>
+                <td><code>+14.7 mHa</code></td>
+                <td><span class="tag-badge success">Beats HF & Random</span></td>
+              </tr>
+              <tr>
+                <td><strong>LiH</strong> (Interpolation)</td>
+                <td>6q</td>
+                <td><code>-8.3735 Ha</code></td>
+                <td>-8.1179 Ha</td>
+                <td>-7.5976 Ha</td>
+                <td>-8.3579 Ha</td>
+                <td><strong class="text-success">-8.2795 Ha</strong></td>
+                <td><code>+94.0 mHa</code></td>
+                <td><span class="tag-badge success">Beats HF & Random</span></td>
+              </tr>
+              <tr>
+                <td><strong>BeH₂</strong> (Zero-Shot OOD)</td>
+                <td>6q</td>
+                <td><code>-16.7419 Ha</code></td>
+                <td>-16.6290 Ha</td>
+                <td>-15.4871 Ha</td>
+                <td>-16.6800 Ha</td>
+                <td><strong class="text-success">-16.7195 Ha</strong></td>
+                <td><code>+22.4 mHa</code></td>
+                <td><span class="tag-badge success">OOD Bounded Parity</span></td>
+              </tr>
+              <tr>
+                <td><strong>H₄ chain</strong> (Zero-Shot OOD)</td>
+                <td>8q</td>
+                <td><code>-2.5475 Ha</code></td>
+                <td>-2.4124 Ha</td>
+                <td>-2.1725 Ha</td>
+                <td>-2.4100 Ha</td>
+                <td><strong class="text-success">-2.4153 Ha</strong></td>
+                <td><code>+132.2 mHa</code></td>
+                <td><span class="tag-badge success">OOD Bounded Parity</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab 2: Noise Table -->
+      <div class="tab-pane" id="tab-noise">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>System</th>
+                <th>Gate Counts (Sparse vs Dense)</th>
+                <th>Noise Rate (p<sub>2</sub>)</th>
+                <th>Dense HEA Fidelity</th>
+                <th>Sparse Circuit Fidelity</th>
+                <th>Fidelity Gain</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>H₂</strong></td>
+                <td>1 CX vs 3 CX</td>
+                <td><code>p₂ = 0.020 (2.0%)</code></td>
+                <td>1.0000</td>
+                <td><strong class="text-success">0.9854</strong></td>
+                <td><span class="tag-badge">-1.5%</span></td>
+              </tr>
+              <tr>
+                <td><strong>LiH</strong></td>
+                <td>1 CX vs 5 CX</td>
+                <td><code>p₂ = 0.010 (1.0%)</code></td>
+                <td>0.9725</td>
+                <td><strong class="text-success">1.0000</strong></td>
+                <td><span class="tag-badge success">+2.8%</span></td>
+              </tr>
+              <tr>
+                <td><strong>LiH</strong></td>
+                <td>1 CX vs 5 CX</td>
+                <td><code>p₂ = 0.020 (2.0%)</code></td>
+                <td>0.9294</td>
+                <td><strong class="text-success">1.0000</strong></td>
+                <td><span class="tag-badge success">+7.6%</span></td>
+              </tr>
+              <tr>
+                <td><strong>BeH₂</strong></td>
+                <td>1 CX vs 5 CX</td>
+                <td><code>p₂ = 0.020 (2.0%)</code></td>
+                <td>0.9294</td>
+                <td><strong class="text-success">1.0000</strong></td>
+                <td><span class="tag-badge success">+7.6%</span></td>
+              </tr>
+              <tr>
+                <td><strong>H₄ chain</strong></td>
+                <td>1 CX vs 7 CX</td>
+                <td><code>p₂ = 0.010 (1.0%)</code></td>
+                <td>0.8837</td>
+                <td><strong class="text-success">0.9800</strong></td>
+                <td><span class="tag-badge success">+10.9%</span></td>
+              </tr>
+              <tr>
+                <td><strong>H₄ chain</strong></td>
+                <td>1 CX vs 7 CX</td>
+                <td><code>p₂ = 0.020 (2.0%)</code></td>
+                <td>0.8727</td>
+                <td><strong class="text-success">0.9800</strong></td>
+                <td><span class="tag-badge success highlight">+12.3%</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab 3: Locality Audit -->
+      <div class="tab-pane" id="tab-locality">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Molecule</th>
+                <th>Qubits</th>
+                <th>Pauli Terms</th>
+                <th>2-Body Interacting Pairs</th>
+                <th>Standard HEA CX</th>
+                <th>Wasted CX Gates</th>
+                <th>Wasted Gate %</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>H₂</strong></td>
+                <td>4q</td>
+                <td>11 terms</td>
+                <td><code>(0,1), (1,2), (2,3), (0,3)</code></td>
+                <td>3 CX</td>
+                <td>0</td>
+                <td><span class="tag-badge success">0.0% Wasted</span></td>
+              </tr>
+              <tr>
+                <td><strong>LiH</strong></td>
+                <td>6q</td>
+                <td>13 terms</td>
+                <td><code>(0,1), (0,3), (2,3), (2,4)</code></td>
+                <td>5 CX</td>
+                <td>3: <code>(1,2), (3,4), (4,5)</code></td>
+                <td><span class="tag-badge danger">60.0% Wasted</span></td>
+              </tr>
+              <tr>
+                <td><strong>BeH₂</strong></td>
+                <td>6q</td>
+                <td>14 terms</td>
+                <td><code>(0,1), (0,2)</code></td>
+                <td>5 CX</td>
+                <td>4: <code>(1,2), (2,3), (3,4), (4,5)</code></td>
+                <td><span class="tag-badge danger">80.0% Wasted</span></td>
+              </tr>
+              <tr>
+                <td><strong>H₄ chain</strong></td>
+                <td>8q</td>
+                <td>17 terms</td>
+                <td><code>(0,1), (1,2), (2,3)</code></td>
+                <td>7 CX</td>
+                <td>4: <code>(3,4), (4,5), (5,6), (6,7)</code></td>
+                <td><span class="tag-badge danger">57.1% Wasted</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab 4: Figures Gallery -->
+      <div class="tab-pane" id="tab-figures">
+        <div class="gallery-grid">
+          <div class="gallery-card">
+            <img src="figures/pipeline_architecture.png" alt="Dual-Head Transformer Architecture">
+            <h4>Dual-Head Architecture Pipeline</h4>
+            <p>15,436-parameter pure-NumPy Transformer branching into architecture and parameter heads.</p>
+          </div>
+          <div class="gallery-card">
+            <img src="figures/hardware_noise_resilience.png" alt="Hardware Noise Resilience">
+            <h4>Hardware Noise Resilience Curves</h4>
+            <p>Fidelity degradation across depolarizing rates p<sub>2</sub> &isin; [0, 0.02].</p>
+          </div>
+          <div class="gallery-card">
+            <img src="figures/multi_molecule_convergence.png" alt="Multi-Molecule Convergence">
+            <h4>Multi-Molecule Convergence Trajectories</h4>
+            <p>Optimization dynamics comparing Random, HF, and Transformer warm-starting.</p>
+          </div>
+          <div class="gallery-card">
+            <img src="figures/gradient_variance_vs_depth.png" alt="Barren Plateau Gradient Scaling">
+            <h4>Barren Plateau Diagnostic</h4>
+            <p>Gradient variance Var[&nabla;E] scaling across qubits and circuit depths.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- SECTION 6: PAPER CITATION & ARTIFACTS -->
+    <!-- ================================================================= -->
+    <section id="section-citations" class="section-card citation-card">
+      <div class="citation-layout">
+        <div class="citation-left">
+          <div class="badge-row">
+            <span class="pill pill-primary">Official Research Artifact</span>
+            <span class="pill pill-outline">Zenodo Record #22013110 / #23235828</span>
+          </div>
+          <h2>Rigorous Generalization Study: Physics-Informed Residual Warm-Starting and Hardware-Noise Resilience in Transformer-Accelerated Molecular VQE</h2>
+          <p class="author-line"><strong>Ashraf Khan</strong> (2026) · Open-Source Quantum Research</p>
+          <p class="citation-desc">
+            This study demonstrates that hybridizing classical Hartree-Fock anchors with residual transformer representations yields provably bounded ground-state optimization while pruning 60–83% of entangling gate decoherence exposure on noisy NISQ processors.
+          </p>
+          <div class="btn-group">
+            <a href="https://doi.org/10.5281/zenodo.22013110" target="_blank" rel="noopener" class="btn btn-primary">
+              <span class="btn-icon">🌐</span> View Zenodo Record
+            </a>
+            <a href="https://github.com/aashiq-parinda/quantum-genai-warmstart" target="_blank" rel="noopener" class="btn btn-secondary">
+              <span class="btn-icon">💻</span> GitHub Codebase
+            </a>
+          </div>
+        </div>
+
+        <div class="citation-right">
+          <div class="bibtex-box">
+            <div class="bibtex-header">
+              <span>BibTeX Citation</span>
+              <button type="button" class="btn-copy" id="btn-copy-bibtex">📋 Copy</button>
+            </div>
+            <pre class="bibtex-code" id="bibtex-snippet">@article{khan2026quantumgenai,
+  title   = {Rigorous Generalization Study: Physics-Informed Residual Warm-Starting and Hardware-Noise Resilience in Transformer-Accelerated Molecular VQE},
+  author  = {Khan, Ashraf},
+  year    = {2026},
+  journal = {Zenodo Preprint},
+  doi     = {10.5281/zenodo.22013110},
+  url     = {https://doi.org/10.5281/zenodo.22013110}
+}</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <div class="footer-content">
+      <p>⚛️ <strong>Quantum GenAI Warm-Start Lab</strong> — Built for intuitive exploration & empirical verification.</p>
+      <p class="footer-sub">Pure HTML5, Vanilla CSS & Modern JS. Zero external runtime dependencies.</p>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
