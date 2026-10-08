@@ -11,6 +11,12 @@ from qwarmstart.benchmarks.gate_audit import (
     run_full_baseline_gate_audit,
 )
 
+from qwarmstart.models.noise_channels import (
+    evaluate_noisy_vqe_energy,
+    simulate_noisy_circuit_trajectory,
+    compute_ideal_statevector,
+)
+
 __all__ = [
     "encode_hamiltonian", "h2_hamiltonian_sto3g",
     "generate_dataset", "evaluate_vqe_energy",
@@ -19,4 +25,5 @@ __all__ = [
     "train_transformer", "train_joint_transformer",
     "evaluate_joint_vqe_single_system", "evaluate_joint_benchmark_suite",
     "analyze_hamiltonian_locality", "audit_fixed_ansatz_efficiency", "run_full_baseline_gate_audit",
+    "evaluate_noisy_vqe_energy", "simulate_noisy_circuit_trajectory", "compute_ideal_statevector",
 ]
