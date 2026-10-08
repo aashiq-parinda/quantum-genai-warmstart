@@ -232,5 +232,66 @@ class TestJointArchitectureAndParameters:
         assert "pareto_tradeoff" in res
 
 
+class TestPerturbationAveragedHF:
+    def test_pahf_returns_valid_result(self):
+        from qwarmstart.models.baseline_vqe import run_perturbation_averaged_hf_vqe
+        terms = h2_hamiltonian_sto3g()
+        res = run_perturbation_averaged_hf_vqe(
+            terms, 4, molecule_name="H2",
+            n_candidates=3, scout_iters=5, sigma=0.3, rng_seed=42,
+        )
+        assert res["init_type"] == "perturbation_averaged_hf"
+        assert np.isfinite(res["energy"])
+        assert len(res["scout_energies"]) == 3
+        assert res["n_candidates"] == 3
+
+    def test_pahf_energy_reasonable(self):
+        from qwarmstart.models.baseline_vqe import run_perturbation_averaged_hf_vqe
+        terms = h2_hamiltonian_sto3g()
+        res = run_perturbation_averaged_hf_vqe(
+            terms, 4, molecule_name="H2",
+            n_candidates=3, scout_iters=5, sigma=0.3, rng_seed=0, n_iters=20,
+        )
+        # Energy should be negative and finite for H2
+        assert res["energy"] < 0.0
+
+
+class TestMultiSeedTraining:
+    def test_train_multi_seed(self):
+        from qwarmstart.training.trainer import train_multi_seed
+        X = np.random.randn(4, 32 * 33).astype(np.float32)
+        y = np.random.randn(4, 16).astype(np.float32)
+        mask = np.ones((4, 28), dtype=np.float32)
+        res = train_multi_seed(
+            X, y, mask, n_seeds=2, n_epochs=2, lr=0.01,
+            d_token=33, d_model=16, n_heads=2, n_params=16,
+            seq_len=32, n_max_qubits=8, verbose=False,
+        )
+        assert "best_model" in res
+        assert "loss_mean" in res
+        assert "loss_std" in res
+        assert len(res["all_final_losses"]) == 2
+        assert res["best_model"] is not None
+
+
+class TestFourBaselineEvaluation:
+    def test_evaluation_includes_pahf_keys(self):
+        from qwarmstart.benchmarks.evaluation import evaluate_single_hamiltonian_multi_seed
+        model = ParameterTransformer(d_token=33, d_model=16, n_heads=2, n_params=8, seq_len=32)
+        terms = h2_hamiltonian_sto3g()
+        res = evaluate_single_hamiltonian_multi_seed(
+            model, terms, n_qubits=4, molecule_name="H2",
+            n_seeds=3, max_terms=32, n_max_qubits=8,
+        )
+        # Verify all 4 baseline keys present
+        for prefix in ["energy_mean_base", "energy_mean_hf", "energy_mean_pahf", "energy_mean_warm"]:
+            assert prefix in res, f"Missing key: {prefix}"
+        for prefix in ["iter_mean_base", "iter_mean_hf", "iter_mean_pahf", "iter_mean_warm"]:
+            assert prefix in res, f"Missing key: {prefix}"
+        assert "p_value_warm_vs_pahf" in res
+        assert "beats_pahf" in res
+        assert isinstance(res["beats_pahf"], bool)
+
+
 
 

@@ -129,7 +129,7 @@ def evaluate_single_hamiltonian_multi_seed(
     max_terms: int = 64,
     n_max_qubits: int = 8,
 ) -> Dict[str, Any]:
-    """Run warm-start vs random-init AND Hartree-Fock baselines across N seeds with statistical testing.
+    """Run warm-start vs random-init, Hartree-Fock, AND PA-HF baselines across N seeds with statistical testing.
 
     Parameters
     ----------
@@ -146,12 +146,14 @@ def evaluate_single_hamiltonian_multi_seed(
     dict with:
       - 'energy_mean_base', 'energy_std_base'
       - 'energy_mean_hf', 'energy_std_hf'
+      - 'energy_mean_pahf', 'energy_std_pahf'
       - 'energy_mean_warm', 'energy_std_warm'
-      - 'iter_mean_base', 'iter_mean_hf', 'iter_mean_warm'
-      - 'p_value_warm_vs_base', 'p_value_warm_vs_hf'
+      - 'iter_mean_base', 'iter_mean_hf', 'iter_mean_pahf', 'iter_mean_warm'
+      - 'p_value_warm_vs_base', 'p_value_warm_vs_hf', 'p_value_warm_vs_pahf'
       - 'beats_hartree_fock': bool
+      - 'beats_pahf': bool
     """
-    from qwarmstart.models.baseline_vqe import run_hartree_fock_vqe
+    from qwarmstart.models.baseline_vqe import run_hartree_fock_vqe, run_perturbation_averaged_hf_vqe
 
     h_vec = hamiltonian_to_flat_vector(pauli_terms, n_max_qubits, max_terms)
     warmstart_params_full = model.forward(h_vec)
@@ -161,6 +163,8 @@ def evaluate_single_hamiltonian_multi_seed(
     base_iters = []
     hf_energies = []
     hf_iters = []
+    pahf_energies = []
+    pahf_iters = []
     warm_energies = []
     warm_iters = []
 
@@ -178,7 +182,15 @@ def evaluate_single_hamiltonian_multi_seed(
         hf_energies.append(hf_run["energy"])
         hf_iters.append(hf_run["converged_at"])
 
-        # 3. Transformer warm-start
+        # 3. Perturbation-Averaged HF baseline
+        pahf_run = run_perturbation_averaged_hf_vqe(
+            pauli_terms, n_qubits, molecule_name=molecule_name,
+            n_candidates=5, scout_iters=10, sigma=0.3, rng_seed=seed,
+        )
+        pahf_energies.append(pahf_run["energy"])
+        pahf_iters.append(pahf_run["converged_at"])
+
+        # 4. Transformer warm-start
         warm_noise = rng.normal(0, 0.01, size=n_qubits) if seed > 0 else np.zeros(n_qubits)
         warm_init = warmstart_params + warm_noise
         warmstart = run_vqe_from_init(pauli_terms, n_qubits, warm_init)
@@ -187,22 +199,31 @@ def evaluate_single_hamiltonian_multi_seed(
 
     base_energies = np.array(base_energies, dtype=np.float64)
     hf_energies = np.array(hf_energies, dtype=np.float64)
+    pahf_energies = np.array(pahf_energies, dtype=np.float64)
     warm_energies = np.array(warm_energies, dtype=np.float64)
     base_iters = np.array(base_iters, dtype=np.float64)
     hf_iters = np.array(hf_iters, dtype=np.float64)
+    pahf_iters = np.array(pahf_iters, dtype=np.float64)
     warm_iters = np.array(warm_iters, dtype=np.float64)
 
     # Paired t-tests
     _, p_val_warm_vs_base = stats.ttest_rel(warm_energies, base_energies) if not np.allclose(warm_energies, base_energies) else (0, 1.0)
     _, p_val_warm_vs_hf = stats.ttest_rel(warm_energies, hf_energies) if not np.allclose(warm_energies, hf_energies) else (0, 1.0)
+    _, p_val_warm_vs_pahf = stats.ttest_rel(warm_energies, pahf_energies) if not np.allclose(warm_energies, pahf_energies) else (0, 1.0)
     _, p_val_hf_vs_base = stats.ttest_rel(hf_energies, base_energies) if not np.allclose(hf_energies, base_energies) else (0, 1.0)
+    _, p_val_pahf_vs_base = stats.ttest_rel(pahf_energies, base_energies) if not np.allclose(pahf_energies, base_energies) else (0, 1.0)
 
     iter_reduction_vs_base = 1.0 - (float(np.mean(warm_iters)) / max(float(np.mean(base_iters)), 1.0))
     iter_reduction_vs_hf = 1.0 - (float(np.mean(warm_iters)) / max(float(np.mean(hf_iters)), 1.0))
+    iter_reduction_vs_pahf = 1.0 - (float(np.mean(warm_iters)) / max(float(np.mean(pahf_iters)), 1.0))
 
     beats_hf_energy = float(np.mean(warm_energies)) <= float(np.mean(hf_energies)) + 0.005
     beats_hf_iters = float(np.mean(warm_iters)) <= float(np.mean(hf_iters))
     beats_hf = beats_hf_energy and beats_hf_iters
+
+    beats_pahf_energy = float(np.mean(warm_energies)) <= float(np.mean(pahf_energies)) + 0.005
+    beats_pahf_iters = float(np.mean(warm_iters)) <= float(np.mean(pahf_iters))
+    beats_pahf = beats_pahf_energy and beats_pahf_iters
 
     return {
         "n_qubits": n_qubits,
@@ -211,22 +232,31 @@ def evaluate_single_hamiltonian_multi_seed(
         "energy_std_base": float(np.std(base_energies)),
         "energy_mean_hf": float(np.mean(hf_energies)),
         "energy_std_hf": float(np.std(hf_energies)),
+        "energy_mean_pahf": float(np.mean(pahf_energies)),
+        "energy_std_pahf": float(np.std(pahf_energies)),
         "energy_mean_warm": float(np.mean(warm_energies)),
         "energy_std_warm": float(np.std(warm_energies)),
         "iter_mean_base": float(np.mean(base_iters)),
         "iter_std_base": float(np.std(base_iters)),
         "iter_mean_hf": float(np.mean(hf_iters)),
         "iter_std_hf": float(np.std(hf_iters)),
+        "iter_mean_pahf": float(np.mean(pahf_iters)),
+        "iter_std_pahf": float(np.std(pahf_iters)),
         "iter_mean_warm": float(np.mean(warm_iters)),
         "iter_std_warm": float(np.std(warm_iters)),
         "iter_reduction_mean": iter_reduction_vs_base,
         "iter_reduction_vs_hf": iter_reduction_vs_hf,
+        "iter_reduction_vs_pahf": iter_reduction_vs_pahf,
         "p_value_ttest": float(p_val_warm_vs_base),
         "p_value_warm_vs_hf": float(p_val_warm_vs_hf),
+        "p_value_warm_vs_pahf": float(p_val_warm_vs_pahf),
         "p_value_hf_vs_base": float(p_val_hf_vs_base),
+        "p_value_pahf_vs_base": float(p_val_pahf_vs_base),
         "statistically_significant": float(p_val_warm_vs_base) < 0.05,
         "beats_hartree_fock": beats_hf,
+        "beats_pahf": beats_pahf,
     }
+
 
 
 def evaluate_molecular_suite_multi_seed(
@@ -254,22 +284,29 @@ def evaluate_molecular_suite_multi_seed(
 
     avg_iter_reduction = float(np.mean([r["iter_reduction_mean"] for r in results]))
     avg_iter_reduction_vs_hf = float(np.mean([r["iter_reduction_vs_hf"] for r in results]))
+    avg_iter_reduction_vs_pahf = float(np.mean([r["iter_reduction_vs_pahf"] for r in results]))
     avg_energy_warm = float(np.mean([r["energy_mean_warm"] for r in results]))
     avg_energy_base = float(np.mean([r["energy_mean_base"] for r in results]))
     avg_energy_hf = float(np.mean([r["energy_mean_hf"] for r in results]))
+    avg_energy_pahf = float(np.mean([r["energy_mean_pahf"] for r in results]))
     pct_beats_hf = float(np.mean([1.0 if r["beats_hartree_fock"] else 0.0 for r in results])) * 100
+    pct_beats_pahf = float(np.mean([1.0 if r["beats_pahf"] else 0.0 for r in results])) * 100
 
     return {
         "n_samples": len(results),
         "n_seeds": n_seeds,
         "avg_iter_reduction_vs_random": avg_iter_reduction,
         "avg_iter_reduction_vs_hf": avg_iter_reduction_vs_hf,
+        "avg_iter_reduction_vs_pahf": avg_iter_reduction_vs_pahf,
         "avg_energy_warm": avg_energy_warm,
         "avg_energy_base": avg_energy_base,
         "avg_energy_hf": avg_energy_hf,
+        "avg_energy_pahf": avg_energy_pahf,
         "pct_beats_hartree_fock": pct_beats_hf,
+        "pct_beats_pahf": pct_beats_pahf,
         "results": results,
     }
+
 
 
 def compute_parameter_gradients(

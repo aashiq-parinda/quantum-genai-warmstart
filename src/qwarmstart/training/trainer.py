@@ -55,12 +55,13 @@ def train_joint_transformer(
     lambda_conn: float = 0.02,
     batch_size: int = 16,
     verbose: bool = True,
+    rng_seed: int = 42,
 ) -> Dict[str, Any]:
     """Train ParameterTransformer with joint multi-objective loss for structure + parameters.
 
     Loss = MSE(θ_pred, θ_true) + BCE(m_pred, m_true) + λ_sparse * mean(m_pred) + λ_conn * Connectivity(m_pred)
     """
-    rng = np.random.default_rng(42)
+    rng = np.random.default_rng(rng_seed)
     N = X_train.shape[0]
     param_loss_history = []
     mask_loss_history = []
@@ -196,4 +197,98 @@ def train_transformer(
         "loss_history": loss_history,
         "final_loss": loss_history[-1],
         "epochs_run": n_epochs,
+    }
+
+
+def train_multi_seed(
+    X_train: np.ndarray,
+    y_train: np.ndarray,
+    mask_train: np.ndarray,
+    n_seeds: int = 5,
+    n_epochs: int = 20,
+    lr: float = 0.015,
+    lambda_sparse: float = 0.04,
+    lambda_conn: float = 0.02,
+    d_token: int = 33,
+    d_model: int = 32,
+    n_heads: int = 2,
+    n_params: int = 16,
+    seq_len: int = 64,
+    n_max_qubits: int = 8,
+    verbose: bool = True,
+) -> Dict[str, Any]:
+    """Train ParameterTransformer across multiple seeds and report loss statistics.
+
+    For each seed, initializes a fresh model and trains with the joint loss.
+    Returns loss_mean ± loss_std across seeds, plus the best-seed model.
+
+    Parameters
+    ----------
+    X_train, y_train, mask_train : training data arrays
+    n_seeds : int — number of independent training runs (default 5)
+    n_epochs : int — epochs per training run
+    lr, lambda_sparse, lambda_conn : training hyperparameters
+    d_token, d_model, n_heads, n_params, seq_len, n_max_qubits : model config
+    verbose : bool
+
+    Returns
+    -------
+    dict with:
+      - 'best_model': ParameterTransformer with lowest final loss
+      - 'best_seed': int
+      - 'best_loss': float
+      - 'loss_mean': float
+      - 'loss_std': float
+      - 'all_final_losses': list of float
+      - 'all_train_results': list of training result dicts
+    """
+    all_final_losses = []
+    all_results = []
+    best_model = None
+    best_loss = float('inf')
+    best_seed = 0
+
+    for seed in range(n_seeds):
+        if verbose:
+            print(f"  [Seed {seed+1}/{n_seeds}] Training with rng_seed={seed}...", flush=True)
+
+        model = ParameterTransformer(
+            d_token=d_token, d_model=d_model, n_heads=n_heads,
+            n_params=n_params, seq_len=seq_len, n_max_qubits=n_max_qubits,
+            rng_seed=seed,
+        )
+
+        train_res = train_joint_transformer(
+            model, X_train, y_train, mask_train,
+            n_epochs=n_epochs, lr=lr,
+            lambda_sparse=lambda_sparse, lambda_conn=lambda_conn,
+            verbose=False, rng_seed=seed,
+        )
+
+        final_loss = train_res["final_loss"]
+        all_final_losses.append(final_loss)
+        all_results.append(train_res)
+
+        if verbose:
+            print(f"    → Final Loss: {final_loss:.5f}", flush=True)
+
+        if final_loss < best_loss:
+            best_loss = final_loss
+            best_model = model
+            best_seed = seed
+
+    losses_arr = np.array(all_final_losses, dtype=np.float64)
+
+    if verbose:
+        print(f"  Multi-Seed Summary: Loss = {float(np.mean(losses_arr)):.5f} ± {float(np.std(losses_arr)):.5f}")
+        print(f"  Best Seed: {best_seed} (Loss = {best_loss:.5f})")
+
+    return {
+        "best_model": best_model,
+        "best_seed": best_seed,
+        "best_loss": best_loss,
+        "loss_mean": float(np.mean(losses_arr)),
+        "loss_std": float(np.std(losses_arr)),
+        "all_final_losses": all_final_losses,
+        "all_train_results": all_results,
     }

@@ -172,3 +172,84 @@ def run_hartree_fock_vqe(
     return result
 
 
+def run_perturbation_averaged_hf_vqe(
+    pauli_terms: List[Tuple[str, float]],
+    n_qubits: int,
+    molecule_name: str = None,
+    n_candidates: int = 5,
+    scout_iters: int = 10,
+    sigma: float = 0.3,
+    rng_seed: int = 42,
+    entangling_pairs: List[Tuple[int, int]] = None,
+    **kwargs,
+) -> Dict[str, Any]:
+    """Perturbation-Averaged Hartree-Fock (PA-HF) warm-start baseline.
+
+    A practical classical search baseline:
+      1. Generate K random perturbations around Hartree-Fock parameters (σ=0.3).
+      2. Run a short VQE scout optimization (10 iterations) on each candidate.
+      3. Select the candidate with the lowest scout energy.
+      4. Run full VQE from that best candidate as the warm-start initialization.
+
+    This captures the idea of 'cheaply searching around a known good classical
+    point' without any ML training, and is a realistic alternative a practitioner
+    might try before reaching for a neural network.
+
+    Parameters
+    ----------
+    pauli_terms : Hamiltonian Pauli terms
+    n_qubits : int
+    molecule_name : str, optional — used to determine HF electron count
+    n_candidates : int — number of perturbation candidates (default 5)
+    scout_iters : int — VQE iterations per scout run (default 10)
+    sigma : float — perturbation standard deviation (default 0.3)
+    rng_seed : int
+    entangling_pairs : list of (control, target) qubit pairs (default None)
+    **kwargs : passed to run_vqe_from_init for the final full run
+
+    Returns
+    -------
+    dict with standard VQE result keys plus:
+      - 'init_type': 'perturbation_averaged_hf'
+      - 'n_candidates': int
+      - 'scout_iters': int
+      - 'scout_energies': list of float — energy after scout for each candidate
+    """
+    rng = np.random.default_rng(rng_seed)
+    hf_params = get_hartree_fock_params(n_qubits, molecule_name=molecule_name)
+
+    best_energy = float('inf')
+    best_params = hf_params.copy()
+    scout_energies = []
+
+    for k in range(n_candidates):
+        # Perturb HF params
+        perturbation = rng.normal(0, sigma, size=n_qubits)
+        candidate_params = hf_params + perturbation
+
+        # Short scout VQE
+        scout_run = run_vqe_from_init(
+            pauli_terms, n_qubits, candidate_params,
+            entangling_pairs=entangling_pairs,
+            n_iters=scout_iters, lr=0.05,
+        )
+        scout_energies.append(scout_run["energy"])
+
+        if scout_run["energy"] < best_energy:
+            best_energy = scout_run["energy"]
+            best_params = scout_run["params"].copy()
+
+    # Full VQE from best scout candidate
+    result = run_vqe_from_init(
+        pauli_terms, n_qubits, best_params,
+        entangling_pairs=entangling_pairs,
+        **kwargs,
+    )
+    result["init_type"] = "perturbation_averaged_hf"
+    result["initial_params"] = best_params
+    result["n_candidates"] = n_candidates
+    result["scout_iters"] = scout_iters
+    result["scout_energies"] = scout_energies
+    return result
+
+
